@@ -1,25 +1,23 @@
-const {
-  createBullBoard
-} = require("@bull-board/api");
+const { createBullBoard } = require("@bull-board/api");
+const { BullMQAdapter } = require("@bull-board/api/bullMQAdapter");
+const { ExpressAdapter } = require("@bull-board/express");
 
-const {
-  BullMQAdapter
-} = require("@bull-board/api/bullMQAdapter");
+const { Queue } = require("bullmq");
+const Redis = require("ioredis");
 
-const {
-  ExpressAdapter
-} = require("@bull-board/express");
+const connection = new Redis(
+  process.env.REDIS_URL,
+  {
+    maxRetriesPerRequest: null
+  }
+);
 
-const {
-  leadQueue,
-  callQueue,
-  reminderQueue,
-  referralQueue
-} = require("./queueManager");
+const leadQueue = new Queue(
+  "leadQueue",
+  { connection }
+);
 
-function setupBullBoard(
-  app
-) {
+function setupBullBoard(app) {
   const serverAdapter =
     new ExpressAdapter();
 
@@ -31,15 +29,6 @@ function setupBullBoard(
     queues: [
       new BullMQAdapter(
         leadQueue
-      ),
-      new BullMQAdapter(
-        callQueue
-      ),
-      new BullMQAdapter(
-        reminderQueue
-      ),
-      new BullMQAdapter(
-        referralQueue
       )
     ],
     serverAdapter
@@ -48,10 +37,6 @@ function setupBullBoard(
   app.use(
     "/admin/queues",
     serverAdapter.getRouter()
-  );
-
-  console.log(
-    "✅ Bull Board running at /admin/queues"
   );
 }
 
