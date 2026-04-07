@@ -1,5 +1,4 @@
-const Lead = require("../models/Lead");
-
+const addLeadJob = require("../queue/jobs/leadJob");
 class LeadController {
   async createLead(req, res) {
     try {
