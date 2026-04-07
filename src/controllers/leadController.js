@@ -1,100 +1,71 @@
-const Lead = require(
-  "../models/Lead"
-);
+const Lead = require("../models/Lead");
 
 class LeadController {
-  async createLead(
-    req,
-    res
-  ) {
+  // 1. Create a Lead
+  async createLead(req, res) {
     try {
-      console.log(
-        "📥 Received lead:",
-        req.body
-      );
+      console.log("📥 Received lead:", req.body);
 
-      const {
+      const { name, phone, studentClass, referredBy } = req.body;
+
+      // Basic validation check
+      if (!name || !phone) {
+        return res.status(400).json({
+          success: false,
+          message: "Name and Phone are required."
+        });
+      }
+
+      const lead = await Lead.create({
         name,
         phone,
         studentClass,
-        referredBy
-      } = req.body;
+        referredBy,
+        source: "referral_form",
+        status: "NEW"
+      });
 
-      const lead =
-        await Lead.create({
-          name,
-          phone,
-          studentClass,
-          referredBy,
-          source:
-            "referral_form",
-          status: "NEW"
-        });
-
-      return res
-        .status(201)
-        .json({
-          success: true,
-          message:
-            "Lead created successfully",
-          data: lead
-        });
+      return res.status(201).json({
+        success: true,
+        message: "Lead created successfully",
+        data: lead
+      });
     } catch (error) {
-      console.error(
-        "Lead create error:",
-        error
-      );
+      console.error("❌ Lead create error:", error);
 
-      return res
-        .status(500)
-        .json({
+      // Handle duplicate phone number (MongoDB error code 11000)
+      if (error.code === 11000) {
+        return res.status(409).json({
           success: false,
-          message:
-            error.message
+          message: "⚠️ This phone number is already registered as a lead."
         });
-    }
-  
+      }
 
-  async getAllLeads(
-    req,
-    res
-  ) {
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong. Please try again."
+      });
+    }
+  }
+
+  // 2. Get All Leads
+  async getAllLeads(req, res) {
     try {
-      const leads =
-        await Lead.find().sort({
-          createdAt: -1
-        });
+      const leads = await Lead.find().sort({ createdAt: -1 });
 
       return res.json({
         success: true,
+        count: leads.length,
         data: leads
       });
     } catch (error) {
-  console.error("❌ Lead create error:", error);
-
-  if (error.code === 11000) {
-    return res.status(409).json({
-      success: false,
-      message:
-        "⚠️ This phone number is already registered as a lead."
-    });
-  }
-
-  return res.status(500).json({
-    success: false,
-    message:
-      "Something went wrong. Please try again."
-  });
-}
-
-      return res
-        .status(500)
-        .json({
-          success: false
-        });
+      console.error("❌ Get leads error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch leads"
+      });
     }
   }
 }
 
-module.exports =
-  new LeadController();
+module.exports = new LeadController();
