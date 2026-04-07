@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 
 const leadRoutes = require("./routes/LeadRoutes");
 const setupBullBoard = require("./queue/bullBoard");
+const startHealthScheduler = require("./monitoring/healthScheduler");
 
 const app = express();
 
@@ -20,6 +21,10 @@ app.use(
       "POST",
       "PUT",
       "DELETE"
+    ],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization"
     ]
   })
 );
@@ -30,6 +35,17 @@ app.use(
     extended: true
   })
 );
+
+/* ---------------------------
+   REQUEST LOGGER
+---------------------------- */
+app.use((req, res, next) => {
+  console.log(
+    `📩 ${req.method} ${req.url}`,
+    req.body
+  );
+  next();
+});
 
 /* ---------------------------
    HEALTH CHECK
@@ -74,11 +90,10 @@ mongoose
     );
   });
 
-const startHealthScheduler =
-  require("./monitoring/healthScheduler");
-
+/* ---------------------------
+   SCHEDULER
+---------------------------- */
 startHealthScheduler();
-
 
 /* ---------------------------
    SERVER START
