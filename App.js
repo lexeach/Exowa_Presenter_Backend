@@ -74,6 +74,17 @@ mongoose
     );
   });
 
+const startHealthScheduler =
+  require("./monitoring/healthScheduler");
+
+startHealthScheduler();
+
+const setupBullBoard =
+  require("./queue/bullBoard");
+
+/* setup bull board */
+setupBullBoard(app);
+
 /* ---------------------------
    SERVER START
 ---------------------------- */

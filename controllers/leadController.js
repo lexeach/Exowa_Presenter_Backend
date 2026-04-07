@@ -1,20 +1,23 @@
-const Lead =
-  require("../models/Lead");
-
-const addLeadJob =
-  require("../queue/jobs/leadJob");
+const Lead = require("../models/Lead");
 
 class LeadController {
   async createLead(req, res) {
     try {
-      const lead =
-        await Lead.create(
-          req.body
-        );
+      const existingLead =
+        await Lead.findOne({
+          phone: req.body.phone
+        });
 
-      await addLeadJob(
-        lead
-      );
+      if (existingLead) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Lead already exists"
+        });
+      }
+
+      const lead =
+        await Lead.create(req.body);
 
       return res.status(201).json({
         success: true,
@@ -26,6 +29,29 @@ class LeadController {
         error
       );
 
+      return res.status(500).json({
+        success: false,
+        message:
+          "Internal server error"
+      });
+    }
+  }
+
+  async getAllLeads(
+    req,
+    res
+  ) {
+    try {
+      const leads =
+        await Lead.find().sort({
+          createdAt: -1
+        });
+
+      return res.json({
+        success: true,
+        data: leads
+      });
+    } catch (error) {
       return res.status(500).json({
         success: false
       });
