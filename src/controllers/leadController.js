@@ -1,38 +1,57 @@
-const leadJob = require('../queue/jobs/leadJob.js');
-class LeadController {
-  async createLead(req, res) {
-    try {
-      const existingLead =
-        await Lead.findOne({
-          phone: req.body.phone
-        });
+const Lead = require(
+  "../models/Lead"
+);
 
-      if (existingLead) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Lead already exists"
-        });
-      }
+class LeadController {
+  async createLead(
+    req,
+    res
+  ) {
+    try {
+      console.log(
+        "📥 Received lead:",
+        req.body
+      );
+
+      const {
+        name,
+        phone,
+        studentClass,
+        referredBy
+      } = req.body;
 
       const lead =
-        await Lead.create(req.body);
+        await Lead.create({
+          name,
+          phone,
+          studentClass,
+          referredBy,
+          source:
+            "referral_form",
+          status: "NEW"
+        });
 
-      return res.status(201).json({
-        success: true,
-        data: lead
-      });
+      return res
+        .status(201)
+        .json({
+          success: true,
+          message:
+            "Lead created successfully",
+          data: lead
+        });
     } catch (error) {
       console.error(
         "Lead create error:",
         error
       );
 
-      return res.status(500).json({
-        success: false,
-        message:
-          "Internal server error"
-      });
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message:
+            error.message
+        });
     }
   }
 
@@ -51,9 +70,15 @@ class LeadController {
         data: leads
       });
     } catch (error) {
-      return res.status(500).json({
-        success: false
-      });
+      console.error(
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          success: false
+        });
     }
   }
 }
