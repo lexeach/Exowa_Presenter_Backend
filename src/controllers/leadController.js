@@ -70,9 +70,22 @@ class LeadController {
         data: leads
       });
     } catch (error) {
-      console.error(
-        error
-      );
+  console.error("❌ Lead create error:", error);
+
+  if (error.code === 11000) {
+    return res.status(409).json({
+      success: false,
+      message:
+        "⚠️ This phone number is already registered as a lead."
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message:
+      "Something went wrong. Please try again."
+  });
+}
 
       return res
         .status(500)
