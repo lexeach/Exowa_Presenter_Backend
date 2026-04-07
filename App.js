@@ -79,11 +79,6 @@ const startHealthScheduler =
 
 startHealthScheduler();
 
-const setupBullBoard =
-  require("./queue/bullBoard");
-
-/* setup bull board */
-setupBullBoard(app);
 
 /* ---------------------------
    SERVER START
