@@ -53,7 +53,7 @@ class LeadController {
             error.message
         });
     }
-  }
+  
 
   async getAllLeads(
     req,
