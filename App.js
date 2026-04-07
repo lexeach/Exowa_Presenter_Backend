@@ -4,7 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
-const leadRoutes = require("./routes/leadRoutes");
+const leadRoutes = require("./routes/LeadRoutes");
 const setupBullBoard = require("./queue/bullBoard");
 
 const app = express();
