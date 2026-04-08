@@ -4,7 +4,7 @@ const {
 } = require("bullmq");
 
 const Redis = require("ioredis");
-const aiCallService = require("../../services/aiCallService");
+const callEngine = require("../../services/calling/callEngine");
 const Lead = require("../../models/Lead");
 
 const connection = new Redis(
@@ -53,7 +53,7 @@ const leadWorker =
            ACTUAL AI CALL
         ------------------------------------ */
        const response =
-  await aiCallService.initiateCall({
+  await callEngine.initiateCall({
     _id:
       leadData.leadId ||
       leadData._id,
