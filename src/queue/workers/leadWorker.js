@@ -4,7 +4,7 @@ const {
 } = require("bullmq");
 
 const Redis = require("ioredis");
-const callEngine = require("../../services/calling/callEngine");
+const callEngine = require("./callEngine");
 const Lead = require("../../models/Lead");
 
 const connection = new Redis(
