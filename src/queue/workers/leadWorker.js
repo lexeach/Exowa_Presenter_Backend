@@ -1,5 +1,22 @@
 const { Worker } = require("bullmq");
 const Redis = require("ioredis");
+const makeAICall = require("../../services/voice/callService");
+
+const leadWorker = new Worker(
+  "leadQueue",
+  async (job) => {
+    const lead = job.data;
+
+    await makeAICall({
+      phone: lead.phone,
+      name: lead.name
+    });
+
+    console.log(
+      "📞 AI call triggered"
+    );
+  }
+);
 
 const connection = new Redis(
   process.env.REDIS_URL,
