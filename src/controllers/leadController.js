@@ -22,7 +22,7 @@ class LeadController {
         phone,
         studentClass,
         referredBy,
-        preferredCallTime
+        preferredCallTime,
         source: "referral_form",
         status: "NEW"
       });
