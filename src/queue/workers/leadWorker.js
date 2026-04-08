@@ -2,7 +2,16 @@ const {
   Worker,
   Queue
 } = require("bullmq");
+const fs = require('fs');
+const path = require('path');
 
+// Ye line aapko batayegi ki us folder mein asliyat mein kya-kya hai
+const targetDir = path.join(__dirname, '../../services/voice');
+if (fs.existsSync(targetDir)) {
+    console.log("📁 Files in voice folder:", fs.readdirSync(targetDir));
+} else {
+    console.log("❌ Folder not found at:", targetDir);
+}
 const Redis = require("ioredis");
 const makeAICall = require("../../services/voice/callEngine");
 const Lead = require("../../models/Lead");
