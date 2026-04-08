@@ -1,22 +1,37 @@
-const leads = [
-  {
-    name: "Rahul",
-    phone: "9876543210",
-    status: "NEW",
-    attempts: 1,
-    demoTime: "5:00 PM"
+const Lead = require("../models/Lead");
+
+class LeadService {
+  async incrementCallAttempt(leadId) {
+    return await Lead.findByIdAndUpdate(
+      leadId,
+      {
+        $inc: {
+          retryCount: 1
+        },
+        callStatus: "INITIATED"
+      },
+      { new: true }
+    );
   }
-];
 
-<LeadDashboard leads={leads} />
+  async updateLeadStatus(
+    leadId,
+    status,
+    extra = {}
+  ) {
+    return await Lead.findByIdAndUpdate(
+      leadId,
+      {
+        status,
+        ...extra
+      },
+      { new: true }
+    );
+  }
 
-<SalesAnalytics
-  totalLeads={50}
-  demosBooked={20}
-  closedSales={8}
-  referrals={15}
-/>
+  async getLeadById(leadId) {
+    return await Lead.findById(leadId);
+  }
+}
 
-<CalendarBooking
-  onBook={(booking) => console.log(booking)}
-/>
+module.exports = new LeadService();
