@@ -13,10 +13,10 @@ Twilio / Exotel / Sarvam voice agent integration
 await leadService.incrementCallAttempt(lead._id);
 
 return {
-success: true,
-message: "Call initiated"
+  success: false,
+  status: "NO_RESPONSE",
+  message: "Max retries reached"
 };
-
 }
 
 async retryMissedCall(lead) {
