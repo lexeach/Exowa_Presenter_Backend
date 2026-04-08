@@ -25,11 +25,12 @@ class LeadController {
         source: "referral_form",
         status: "NEW"
       });
+
       await addLeadJob({
-  leadId: lead._id,
-  phone: lead.phone,
-  name: lead.name
-   });
+        leadId: lead._id,
+        phone: lead.phone,
+        name: lead.name
+      });
 
       return res.status(201).json({
         success: true,
@@ -69,6 +70,41 @@ class LeadController {
       return res.status(500).json({
         success: false,
         message: "Failed to fetch leads"
+      });
+    }
+  }
+
+  // 3. Update Lead Status
+  async updateLeadStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      // Check if lead exists first or handle null result
+      const lead = await Lead.findByIdAndUpdate(
+        id,
+        { status },
+        { new: true, runValidators: true } // runValidators ensures status is a valid enum value
+      );
+
+      if (!lead) {
+        return res.status(404).json({
+          success: false,
+          message: "Lead not found"
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Lead status updated",
+        data: lead
+      });
+    } catch (error) {
+      console.error("❌ Status update error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: error.message
       });
     }
   }
