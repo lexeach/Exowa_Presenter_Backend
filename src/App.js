@@ -1,4 +1,5 @@
 require("dotenv").config();
+require("./queue/workers/leadWorker");
 
 const express = require("express");
 const cors = require("cors");
