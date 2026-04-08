@@ -4,22 +4,18 @@ const leadSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
-      trim: true
+      required: true
     },
 
     phone: {
       type: String,
       required: true,
-      trim: true,
-      unique: true,
-      index: true
+      unique: true
     },
 
     studentClass: {
       type: String,
-      required: true,
-      trim: true
+      default: ""
     },
 
     referredBy: {
@@ -29,12 +25,37 @@ const leadSchema = new mongoose.Schema(
 
     source: {
       type: String,
-      default: "html_form"
+      default: "referral_form"
     },
 
     status: {
       type: String,
-      default: "new"
+      default: "NEW"
+    },
+
+    callStatus: {
+      type: String,
+      default: "NOT_STARTED"
+    },
+
+    demoDate: {
+      type: String,
+      default: ""
+    },
+
+    demoTime: {
+      type: String,
+      default: ""
+    },
+
+    retryCount: {
+      type: Number,
+      default: 0
+    },
+
+    nextRetryAt: {
+      type: Date,
+      default: null
     }
   },
   {
