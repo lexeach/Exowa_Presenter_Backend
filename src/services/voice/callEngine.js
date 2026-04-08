@@ -1,17 +1,17 @@
 const config =
   require("./callConfig");
 
-const twilio =
-  require("./providers/telephony/twilioProvider");
+const twilio = 
+  require("../../providers/telephony/twilioProvider");
 
 const exotel =
-  require("./providers/telephony/exotelProvider");
+  require("../../providers/telephony/exotelProvider");
 
 const sarvam =
-  require("./providers/voice/sarvamProvider");
+  require("../../providers/voice/sarvamProvider");
 
 const elevenLabs =
-  require("./providers/voice/elevenLabsProvider");
+  require("./../providers/voice/elevenLabsProvider");
 
 class CallEngine {
   getTelephony() {
