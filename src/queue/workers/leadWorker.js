@@ -52,17 +52,25 @@ const leadWorker =
         /* -----------------------------------
            ACTUAL AI CALL
         ------------------------------------ */
-        const response =
-          await makeAICall({
-            phone:
-              leadData.phone,
-            name:
-              leadData.name
-          });
+       const response =
+  await aiCallService.initiateCall({
+    _id:
+      leadData.leadId ||
+      leadData._id,
+    referralPhone:
+      leadData.phone,
+    name:
+      leadData.name,
+    attemptCount:
+      leadData.retryCount ||
+      0
+  });
 
-        const callStatus =
-          response.status;
-
+const callStatus =
+  response.success
+    ? "CONNECTED"
+    : "NO_RESPONSE";
+        
         console.log(
           "📞 Call result:",
           callStatus
