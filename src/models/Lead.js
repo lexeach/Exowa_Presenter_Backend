@@ -22,6 +22,10 @@ const leadSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    preferredCallTime: {
+     type: String,
+     default: ""
+    },
 
     source: {
       type: String,
