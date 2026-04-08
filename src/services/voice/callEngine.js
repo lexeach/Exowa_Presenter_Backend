@@ -11,7 +11,7 @@ const sarvam =
   require("../../providers/voice/sarvamProvider");
 
 const elevenLabs =
-  require("./../providers/voice/elevenLabsProvider");
+  require("../../providers/voice/elevenLabsProvider");
 
 class CallEngine {
   getTelephony() {
