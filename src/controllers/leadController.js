@@ -1,4 +1,5 @@
 const Lead = require("../models/Lead");
+const addLeadJob = require("../queue/jobs/leadJob");
 
 class LeadController {
   // 1. Create a Lead
@@ -24,6 +25,11 @@ class LeadController {
         source: "referral_form",
         status: "NEW"
       });
+      await addLeadJob({
+  leadId: lead._id,
+  phone: lead.phone,
+  name: lead.name
+   });
 
       return res.status(201).json({
         success: true,
