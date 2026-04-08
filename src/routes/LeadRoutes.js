@@ -17,4 +17,9 @@ router.get(
   leadController.getAllLeads
 );
 
+router.put(
+  "/status/:id",
+  leadController.updateLeadStatus
+);
+
 module.exports = router;
