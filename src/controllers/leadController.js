@@ -7,7 +7,7 @@ class LeadController {
     try {
       console.log("📥 Received lead:", req.body);
 
-      const { name, phone, studentClass, referredBy } = req.body;
+      const { name, phone, studentClass, referredBy, preferredCallTime } = req.body;
 
       // Basic validation check
       if (!name || !phone) {
@@ -22,6 +22,7 @@ class LeadController {
         phone,
         studentClass,
         referredBy,
+        preferredCallTime
         source: "referral_form",
         status: "NEW"
       });
