@@ -2,7 +2,6 @@ const config = require("./callConfig");
 
 /* TELEPHONY PROVIDERS */
 const twilioProvider = require("../../providers/telephony/twilioProvider");
-const exotel = require(("../../providers/telephony/exotelProvider");
 const vobiz = require(("../../providers/telephony/vobizProvider");
 
 /* VOICE PROVIDERS */
