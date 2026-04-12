@@ -1,56 +1,97 @@
-const config =
-  require("./callConfig");
+const config = require("./callConfig");
 
-const twilio = 
-  require("../../providers/telephony/twilioProvider");
+/* TELEPHONY PROVIDERS */
+const twilio = require("./providers/telephony/twilioProvider");
+const exotel = require("./providers/telephony/exotelProvider");
+const vobiz = require("./providers/telephony/vobizProvider");
 
-const exotel =
-  require("../../providers/telephony/exotelProvider");
-
-const sarvam =
-  require("../../providers/voice/sarvamProvider");
-const vobiz = require('../../routes/vobizCallRoutes');
-
-return config.telephonyProvider ===
-  "vobiz"
-  ? vobiz
-  : twilio;
-
-const elevenLabs =
-  require("../../providers/voice/elevenLabsProvider");
+/* VOICE PROVIDERS */
+const sarvam = require("./providers/voice/sarvamProvider");
+const elevenLabs = require("./providers/voice/elevenLabsProvider");
 
 class CallEngine {
+  /* -------------------------
+     TELEPHONY SWITCH
+  ------------------------- */
   getTelephony() {
-    return config.telephonyProvider ===
-      "exotel"
-      ? exotel
-      : twilio;
+    switch (
+      config.telephonyProvider
+    ) {
+      case "vobiz":
+        return vobiz;
+
+      case "exotel":
+        return exotel;
+
+      case "twilio":
+        return twilio;
+
+      default:
+        return vobiz;
+    }
   }
 
+  /* -------------------------
+     VOICE SWITCH
+  ------------------------- */
   getVoice() {
-    return config.voiceProvider ===
-      "elevenLabs"
-      ? elevenLabs
-      : sarvam;
+    switch (
+      config.voiceProvider
+    ) {
+      case "elevenLabs":
+        return elevenLabs;
+
+      case "sarvam":
+      default:
+        return sarvam;
+    }
   }
 
+  /* -------------------------
+     MAIN CALL METHOD
+  ------------------------- */
   async initiateCall(
-    phone
+    lead
   ) {
-    const voice =
-      await this
-        .getVoice()
-        .generateVoice(
-          "Namaste, main Exowa se bol raha hoon."
-        );
+    try {
+      console.log(
+        "☎️ Initiating call:",
+        lead.phone
+      );
 
-    return await this
-      .getTelephony()
-      .call({
-        phone,
-        message:
-          voice.audioUrl
-      });
+      const voice =
+        await this
+          .getVoice()
+          .generateVoice(
+            `Namaste ${lead.name}, main Exowa se bol raha hoon.`
+          );
+
+      const response =
+        await this
+          .getTelephony()
+          .call({
+            phone:
+              lead.phone,
+            name:
+              lead.name,
+            message:
+              voice.audioUrl
+          });
+
+      console.log(
+        "📞 Call response:",
+        response
+      );
+
+      return response;
+    } catch (error) {
+      console.error(
+        "❌ CallEngine error:",
+        error
+      );
+
+      throw error;
+    }
   }
 }
 
