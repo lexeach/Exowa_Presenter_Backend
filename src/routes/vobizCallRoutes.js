@@ -176,23 +176,91 @@ router.post(
         speechText
       );
 
-      const {
-  demoDate,
-  demoTime
-} = parseDateAndTime(
-  speechText
-);
+      if (!speechText.trim()) {
+        res.set(
+          "Content-Type",
+          "application/xml"
+        );
 
-      if (!demoTime) {
-        const retryXml = `
+        return res.send(`
 <Response>
   <Speak language="hi-IN">
     कृपया समय स्पष्ट रूप से बताएं।
-    जैसे शाम 6 बजे।
+  </Speak>
+</Response>
+`);
+      }
+
+      const {
+        demoDate,
+        demoTime
+      } = parseDateAndTime(
+        speechText
+      );
+
+      const phone = normalizePhone(
+        req.body.To || ""
+      );
+
+      console.log(
+        "📱 Lead phone:",
+        phone
+      );
+
+      const updatedLead =
+        await Lead.findOneAndUpdate(
+          { phone },
+          {
+            status: "DEMO_BOOKED",
+            demoDate,
+            demoTime
+          },
+          { new: true }
+        );
+
+      console.log(
+        "✅ Demo booked:",
+        updatedLead?.phone
+      );
+
+      const xml = `
+<Response>
+  <Speak language="hi-IN">
+    धन्यवाद।
+    आपका demo ${demoDate.toDateString()} को ${demoTime} पर confirm हो गया है।
   </Speak>
 </Response>
 `;
 
+      res.set(
+        "Content-Type",
+        "application/xml"
+      );
+
+      return res.send(xml);
+
+    } catch (error) {
+      console.error(
+        "❌ process-slot error:",
+        error
+      );
+
+      res.set(
+        "Content-Type",
+        "application/xml"
+      );
+
+      return res.send(`
+<Response>
+  <Speak language="hi-IN">
+    क्षमा करें।
+    कुछ technical समस्या हुई है।
+  </Speak>
+</Response>
+`);
+    }
+  }
+);
         res.set(
           "Content-Type",
           "application/xml"
@@ -211,18 +279,15 @@ router.post(
       );
 
       const updatedLead =
-        await Lead.findOneAndUpdate(
-          { phone },
-          {
-            status:
-              "DEMO_BOOKED",
-            demoDate:
-              new Date(),
-            demoTime
-          },
-          { new: true }
-        );
-
+  await Lead.findOneAndUpdate(
+    { phone },
+    {
+      status: "DEMO_BOOKED",
+      demoDate,
+      demoTime
+    },
+    { new: true }
+  );
       console.log(
         "✅ Demo booked:",
         updatedLead?.phone
