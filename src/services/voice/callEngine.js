@@ -1,27 +1,15 @@
-const config =
-  require("./callConfig");
+const config = require("./callConfig");
 
-const twilio = 
-  require("../../providers/telephony/twilioProvider");
+/* TELEPHONY PROVIDERS */
+const twilio = require("./providers/telephony/twilioProvider");
+const exotel = require("./providers/telephony/exotelProvider");
+const vobiz = require("./providers/telephony/vobizProvider");
 
-const exotel =
-  require("../../providers/telephony/exotelProvider");
+/* VOICE PROVIDERS */
+const sarvam = require("./providers/voice/sarvamProvider");
+const elevenLabs = require("./providers/voice/elevenLabsProvider");
 
-const sarvam =
-  require("../../providers/voice/sarvamProvider");
-const vobiz = require('../../routes/vobizCallRoutes');
-
-return config.telephonyProvider ===
-  "vobiz"
-  ? vobiz
-  : twilio;
-
-const elevenLabs =
-  require("../../providers/voice/elevenLabsProvider");
 class CallEngine {
-  /* -------------------------
-     TELEPHONY SWITCH
-  ------------------------- */
   getTelephony() {
     switch (
       config.telephonyProvider
@@ -40,9 +28,6 @@ class CallEngine {
     }
   }
 
-  /* -------------------------
-     VOICE SWITCH
-  ------------------------- */
   getVoice() {
     switch (
       config.voiceProvider
@@ -56,17 +41,18 @@ class CallEngine {
     }
   }
 
-  /* -------------------------
-     MAIN CALL METHOD
-  ------------------------- */
   async initiateCall(
     lead
   ) {
     try {
       console.log(
-        "☎️ Initiating call:",
-        lead.phone
+        "☎️ CallEngine received:",
+        lead
       );
+
+      const phone =
+        lead.referralPhone ||
+        lead.phone;
 
       const voice =
         await this
@@ -79,16 +65,15 @@ class CallEngine {
         await this
           .getTelephony()
           .call({
-            phone:
-              lead.phone,
-            name:
-              lead.name,
+            phone,
             message:
-              voice.audioUrl
+              voice.audioUrl,
+            leadId:
+              lead._id
           });
 
       console.log(
-        "📞 Call response:",
+        "📞 Telephony response:",
         response
       );
 
@@ -98,7 +83,6 @@ class CallEngine {
         "❌ CallEngine error:",
         error
       );
-
       throw error;
     }
   }
