@@ -5,125 +5,84 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
+// Route Imports
 const leadRoutes = require("./routes/LeadRoutes");
+const vobizWebhookRoutes = require("./routes/vobizWebhookRoutes");
+const vobizCallRoutes = require("./routes/vobizCallRoutes");
 const setupBullBoard = require("./queue/bullBoard");
 const startHealthScheduler = require("./monitoring/healthScheduler");
-const vobizWebhookRoutes = require("./routes/vobizWebhookRoutes");
 
-app.use(
-  "/api/vobiz",
-  vobizWebhookRoutes
-);
-
+// 1. INITIALIZE APP FIRST 🚀
 const app = express();
 
 /* ---------------------------
-   MIDDLEWARES
+    MIDDLEWARES
 ---------------------------- */
 app.use(
   cors({
     origin: "*",
-    methods: [
-      "GET",
-      "POST",
-      "PUT",
-      "DELETE"
-    ],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization"
-    ]
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
-app.use((req, res, next) => {
-  console.log(
-    `📩 ${req.method} ${req.originalUrl}`,
-    req.body
-  );
-  next();
-});
+
+// Body Parsers (Must be above routes!)
 app.use(express.json());
-app.use(
-  express.urlencoded({
-    extended: true
-  })
-);
+app.use(express.urlencoded({ extended: true }));
 
-/* ---------------------------
-   REQUEST LOGGER
----------------------------- */
+// Request Logger
 app.use((req, res, next) => {
-  console.log(
-    `📩 ${req.method} ${req.url}`,
-    req.body
-  );
+  console.log(`📩 ${req.method} ${req.originalUrl}`, req.body);
   next();
 });
 
 /* ---------------------------
-   HEALTH CHECK
+    HEALTH CHECK
 ---------------------------- */
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message:
-      "🚀 EXOWA backend is live"
+    message: "🚀 EXOWA backend is live"
   });
 });
 
 /* ---------------------------
-   API ROUTES
+    API ROUTES
 ---------------------------- */
-app.use(
-  "/api/leads",
-  leadRoutes
-);
+// Lead Routes
+app.use("/api/leads", leadRoutes);
+
+// Vobiz Routes (Webhook and Calls)
+app.use("/api/vobiz", vobizWebhookRoutes);
+app.use("/api/vobiz", vobizCallRoutes);
 
 /* ---------------------------
-   BULL BOARD
+    BULL BOARD
 ---------------------------- */
 setupBullBoard(app);
 
 /* ---------------------------
-   MONGODB CONNECTION
+    MONGODB CONNECTION
 ---------------------------- */
 mongoose
-  .connect(
-    process.env.MONGO_URI
-  )
+  .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log(
-      "✅ MongoDB connected successfully"
-    );
+    console.log("✅ MongoDB connected successfully");
   })
   .catch((error) => {
-    console.error(
-      "❌ MongoDB connection error:",
-      error
-    );
+    console.error("❌ MongoDB connection error:", error);
   });
 
-const vobizCallRoutes =
-  require("./routes/vobizCallRoutes");
-
-app.use(
-  "/api/vobiz",
-  vobizCallRoutes
-);
-
 /* ---------------------------
-   SCHEDULER
+    SCHEDULER
 ---------------------------- */
 startHealthScheduler();
 
 /* ---------------------------
-   SERVER START
+    SERVER START
 ---------------------------- */
-const PORT =
-  process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000; // Updated to 10000 to match Render's default
 
 app.listen(PORT, () => {
-  console.log(
-    `🚀 Server running on port ${PORT}`
-  );
+  console.log(`🚀 Server running on port ${PORT}`);
 });
