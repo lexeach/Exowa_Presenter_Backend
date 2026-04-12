@@ -115,9 +115,12 @@ router.post("/answer", (req, res) => {
   try {
     console.log("📞 Vobiz answer webhook:", req.body);
 
+    // ignore hangup callback
     if (req.body.Event === "Hangup") {
       res.set("Content-Type", "text/xml");
-      return res.status(200).send("<Response></Response>");
+      return res.status(200).send(
+        '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+      );
     }
 
     const processUrl =
@@ -125,12 +128,18 @@ router.post("/answer", (req, res) => {
 
     const xml =
       '<?xml version="1.0" encoding="UTF-8"?>' +
-      `<Response>` +
-      `<Speak language="hi-IN">नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए।</Speak>` +
+      '<Response>' +
+      '<Speak voice="WOMAN" language="hi-IN">' +
+      'नमस्ते। मैं Exowa से बोल रही हूँ। ' +
+      'कृपया demo का समय बताइए। ' +
+      'उदाहरण: कल शाम 6 बजे।' +
+      '</Speak>' +
       `<Gather action="${processUrl}" method="POST" timeout="8">` +
-      `<Speak language="hi-IN">उदाहरण: कल शाम 6 बजे</Speak>` +
-      `</Gather>` +
-      `</Response>`;
+      '<Speak language="hi-IN">कृपया अभी बोलें।</Speak>' +
+      '</Gather>' +
+      '</Response>';
+
+    console.log("📤 Sending XML:", xml);
 
     res.set("Content-Type", "text/xml");
     return res.status(200).send(xml);
@@ -143,8 +152,7 @@ router.post("/answer", (req, res) => {
       '<?xml version="1.0" encoding="UTF-8"?><Response><Speak>तकनीकी समस्या हुई है</Speak></Response>'
     );
   }
-});
-/* -----------------------------------
+});/* -----------------------------------
    PROCESS SLOT
 ------------------------------------ */
 router.post("/process-slot", async (req, res) => {
@@ -154,6 +162,8 @@ router.post("/process-slot", async (req, res) => {
     const speechText =
       req.body.Speech ||
       req.body.speech ||
+      req.body.input ||
+      req.body.text||
       "";
 
     console.log("🎤 Parent said:", speechText);
@@ -191,6 +201,7 @@ router.post("/process-slot", async (req, res) => {
 
     if (!updatedLead) {
       console.log("❌ Lead not found");
+       console.log("📤 Sending XML:", xml);
 
       res.set("Content-Type", "application/xml");
 
