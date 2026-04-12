@@ -1,14 +1,23 @@
-const config = require("./callConfig");
+const config =
+  require("./callConfig");
 
-/* TELEPHONY PROVIDERS */
-const twilio = require("./providers/telephony/twilioProvider");
-const exotel = require("./providers/telephony/exotelProvider");
-const vobiz = require("./providers/telephony/vobizProvider");
+const twilio = 
+  require("../../providers/telephony/twilioProvider");
 
-/* VOICE PROVIDERS */
-const sarvam = require("./providers/voice/sarvamProvider");
-const elevenLabs = require("./providers/voice/elevenLabsProvider");
+const exotel =
+  require("../../providers/telephony/exotelProvider");
 
+const sarvam =
+  require("../../providers/voice/sarvamProvider");
+const vobiz = require('../../routes/vobizCallRoutes');
+
+return config.telephonyProvider ===
+  "vobiz"
+  ? vobiz
+  : twilio;
+
+const elevenLabs =
+  require("../../providers/voice/elevenLabsProvider");
 class CallEngine {
   /* -------------------------
      TELEPHONY SWITCH
