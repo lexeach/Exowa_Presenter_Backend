@@ -67,31 +67,30 @@ router.post("/answer", (req, res) => {
     console.log("📞 Vobiz answer webhook:", req.body);
 
     if (req.body.Event === "Hangup") {
-      res.set("Content-Type", "text/xml");
+      res.set("Content-Type", "application/xml");
       return res.status(200).send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
     }
 
     const processUrl = `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
 
-    // ⚡ FIX: Standardized to 'Gather' which is the common Vobiz/Plivo standard.
-    // Ensure XML starts exactly at the beginning of the string (no spaces).
+    // ⚡ FIX: Use Gather (Standard) and trim() to avoid "Invalid XML" errors
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather action="${processUrl}" method="POST" inputType="speech" language="hi-IN" timeout="8">
         <Speak language="hi-IN">
-            नमस्ते। मैं Exowa से बोल रही हूँ। कृपया डेमो का समय बताइए। उदाहरण के लिए, कल शाम छह बजे।
+            नमस्ते। मैं Exowa से बोल रही हूँ। कृपया डेमो का समय बताइए। जैसे: कल शाम छह बजे।
         </Speak>
     </Gather>
     <Speak language="hi-IN">हमें आपका जवाब नहीं मिला। धन्यवाद।</Speak>
 </Response>`.trim();
 
     console.log("📤 Sending XML:", xml);
-    res.set("Content-Type", "text/xml");
+    res.set("Content-Type", "application/xml");
     return res.status(200).send(xml);
 
   } catch (error) {
     console.error("❌ answer webhook error:", error);
-    res.set("Content-Type", "text/xml");
+    res.set("Content-Type", "application/xml");
     return res.status(200).send('<?xml version="1.0" encoding="UTF-8"?><Response><Speak language="hi-IN">तकनीकी समस्या हुई है</Speak></Response>');
   }
 });
@@ -103,16 +102,15 @@ router.post("/process-slot", async (req, res) => {
   try {
     console.log("🎤 Slot webhook body:", req.body);
 
-    // Vobiz can send speech in different fields depending on config
     const speechText = req.body.Speech || req.body.speech || req.body.Input || "";
     console.log("🎤 Parent said:", speechText);
 
     if (!speechText.trim()) {
-      res.set("Content-Type", "text/xml");
+      res.set("Content-Type", "application/xml");
       return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Speak language="hi-IN">कृपया समय स्पष्ट रूप से बताएं। जैसे कल शाम छह बजे।</Speak>
-</Response>`);
+</Response>`.trim());
     }
 
     const { demoDate, demoTime } = parseDateAndTime(speechText);
@@ -126,33 +124,30 @@ router.post("/process-slot", async (req, res) => {
 
     if (!updatedLead) {
       console.log("❌ Lead not found for phone:", phone);
-      res.set("Content-Type", "text/xml");
+      res.set("Content-Type", "application/xml");
       return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Speak language="hi-IN">आपका नंबर रिकॉर्ड में नहीं मिला। धन्यवाद।</Speak>
-</Response>`);
+    <Speak language="hi-IN">आपका नंबर रिकॉर्ड में नहीं मिला।</Speak>
+</Response>`.trim());
     }
 
-    console.log("✅ Demo booked:", updatedLead.phone);
     const formattedDate = formatDateHindi(demoDate);
-
     const finalXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Speak language="hi-IN">
-        धन्यवाद। आपका डेमो ${formattedDate} को ${demoTime} पर कन्फर्म हो गया है।
-    </Speak>
+    <Speak language="hi-IN">धन्यवाद। आपका डेमो ${formattedDate} को ${demoTime} पर कन्फर्म हो गया है।</Speak>
 </Response>`.trim();
 
-    res.set("Content-Type", "text/xml");
+    console.log("✅ Demo booked:", updatedLead.phone);
+    res.set("Content-Type", "application/xml");
     return res.status(200).send(finalXml);
 
   } catch (error) {
     console.error("❌ process-slot error:", error);
-    res.set("Content-Type", "text/xml");
+    res.set("Content-Type", "application/xml");
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Speak language="hi-IN">क्षमा करें। कुछ तकनीकी समस्या हुई है।</Speak>
-</Response>`);
+    <Speak language="hi-IN">क्षमा करें। तकनीकी समस्या हुई है।</Speak>
+</Response>`.trim());
   }
 });
 
