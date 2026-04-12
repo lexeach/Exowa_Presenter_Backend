@@ -1,3 +1,4 @@
+const callEngine = require("../../services/voice/callEngine");
 const {
   Worker,
   Queue
@@ -13,7 +14,6 @@ if (fs.existsSync(targetDir)) {
     console.log("❌ Folder not found at:", targetDir);
 }
 const Redis = require("ioredis");
-const makeAICall = require("../../services/voice/callEngine");
 const Lead = require("../../models/Lead");
 
 const connection = new Redis(
