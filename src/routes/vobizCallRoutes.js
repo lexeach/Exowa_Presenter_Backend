@@ -128,8 +128,20 @@ router.post("/answer", (req, res) => {
     const xml =
       '<?xml version="1.0" encoding="UTF-8"?>' +
       '<Response>' +
-      '<Speak>नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए। उदाहरण: कल शाम 6 बजे।</Speak>' +
-      `<GetInput action="${processUrl}" method="POST" inputType="speech" language="hi-IN" timeout="8" />` +
+      `<GetInput 
+          action="${processUrl}" 
+          method="POST" 
+          inputType="speech"
+          language="hi-IN"
+          speechModel="phone_call"
+          executionTimeout="8">` +
+      '<Speak>' +
+      'नमस्ते। मैं Exowa से बोल रही हूँ। ' +
+      'कृपया demo का समय बताइए। ' +
+      'उदाहरण: कल शाम 6 बजे।' +
+      '</Speak>' +
+      '</GetInput>' +
+      '<Speak>हमें आपका जवाब नहीं मिला। धन्यवाद।</Speak>' +
       '</Response>';
 
     console.log("📤 Sending XML:", xml);
