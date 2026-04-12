@@ -17,7 +17,7 @@ const leadQueue = new Queue(
       attempts: 3,
       backoff: {
         type: "fixed",
-        delay: 300000
+        delay: 30000
       },
       removeOnComplete: true,
       removeOnFail: false
