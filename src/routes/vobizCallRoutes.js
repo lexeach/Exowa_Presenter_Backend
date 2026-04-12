@@ -124,39 +124,26 @@ router.post("/answer", (req, res) => {
     const processUrl =
       `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
 
-    const xml = `
+const xml = `
 <Response>
-  <Speak language="hi-IN" voice="WOMAN">
+  <Speak language="hi-IN">
     नमस्ते।
     मैं Exowa से बोल रही हूँ।
-    क्या आप अपने बच्चे के लिए demo schedule करना चाहेंगे?
-    कृपया समय बोलकर बताएं।
+    कृपया demo का समय बताइए।
   </Speak>
 
   <Gather
     action="${processUrl}"
     method="POST"
-    inputType="speech"
+    input="speech"
     timeout="8"
-    language="hi-IN"
   >
     <Speak language="hi-IN">
-      जैसे आप कह सकते हैं:
-      कल शाम 6 बजे
-      या
-      शुक्रवार शाम 6 बजे
-      या
-      12 तारीख को दोपहर 2 बजे
+      उदाहरण: कल शाम 6 बजे
     </Speak>
   </Gather>
-
-  <Speak language="hi-IN">
-    हमें आपकी आवाज़ प्राप्त नहीं हुई।
-    कृपया बाद में पुनः प्रयास करें।
-  </Speak>
 </Response>`;
-
-    res.set("Content-Type", "application/xml");
+     res.set("Content-Type", "application/xml");
     return res.status(200).send(xml);
 
   } catch (error) {
