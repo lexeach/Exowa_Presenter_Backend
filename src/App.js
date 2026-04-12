@@ -91,6 +91,14 @@ mongoose
     );
   });
 
+const vobizCallRoutes =
+  require("./routes/vobizCallRoutes");
+
+app.use(
+  "/api/vobiz",
+  vobizCallRoutes
+);
+
 /* ---------------------------
    SCHEDULER
 ---------------------------- */
