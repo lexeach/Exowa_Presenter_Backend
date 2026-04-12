@@ -115,50 +115,35 @@ router.post("/answer", (req, res) => {
   try {
     console.log("📞 Vobiz answer webhook:", req.body);
 
-    /* ignore hangup duplicate event */
     if (req.body.Event === "Hangup") {
-      res.set("Content-Type", "application/xml");
+      res.set("Content-Type", "text/xml");
       return res.status(200).send("<Response></Response>");
     }
 
     const processUrl =
       `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
 
-const xml = `
-<Response>
-  <Speak language="hi-IN">
-    नमस्ते।
-    मैं Exowa से बोल रही हूँ।
-    कृपया demo का समय बताइए।
-  </Speak>
+    const xml =
+      '<?xml version="1.0" encoding="UTF-8"?>' +
+      `<Response>` +
+      `<Speak language="hi-IN">नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए।</Speak>` +
+      `<Gather action="${processUrl}" method="POST" timeout="8">` +
+      `<Speak language="hi-IN">उदाहरण: कल शाम 6 बजे</Speak>` +
+      `</Gather>` +
+      `</Response>`;
 
-  <Gather
-    action="${processUrl}"
-    method="POST"
-    input="speech"
-    timeout="8"
-  >
-    <Speak language="hi-IN">
-      उदाहरण: कल शाम 6 बजे
-    </Speak>
-  </Gather>
-</Response>`;
-     res.set("Content-Type", "application/xml");
+    res.set("Content-Type", "text/xml");
     return res.status(200).send(xml);
 
   } catch (error) {
     console.error("❌ answer webhook error:", error);
 
-    res.set("Content-Type", "application/xml");
-    return res.status(200).send(`
-<Response>
-  <Speak language="hi-IN">
-    तकनीकी समस्या हुई है।
-  </Speak>
-</Response>`);
+    res.set("Content-Type", "text/xml");
+    return res.status(200).send(
+      '<?xml version="1.0" encoding="UTF-8"?><Response><Speak>तकनीकी समस्या हुई है</Speak></Response>'
+    );
   }
 });
-
 /* -----------------------------------
    PROCESS SLOT
 ------------------------------------ */
