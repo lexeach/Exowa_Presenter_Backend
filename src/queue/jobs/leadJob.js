@@ -31,19 +31,31 @@ const leadQueue = new Queue(
 function calculateDelay(
   preferredTime
 ) {
-  if (!preferredTime) {
-    return 30000; // default 30 sec
-  }
+  if (!preferredTime)
+    return 30000;
 
-  const now = new Date();
+  const now =
+    new Date();
 
   const [hours, minutes] =
     preferredTime
       .split(":")
       .map(Number);
 
+  /* CURRENT IST TIME */
+  const nowIST =
+    new Date(
+      now.toLocaleString(
+        "en-US",
+        {
+          timeZone:
+            "Asia/Kolkata"
+        }
+      )
+    );
+
   const scheduled =
-    new Date();
+    new Date(nowIST);
 
   scheduled.setHours(
     hours,
@@ -52,19 +64,26 @@ function calculateDelay(
     0
   );
 
-  /* IF TIME PASSED → NEXT DAY */
-  if (scheduled <= now) {
+  /* IF TIME PASSED -> NEXT DAY */
+  if (
+    scheduled <= nowIST
+  ) {
     scheduled.setDate(
       scheduled.getDate() +
         1
     );
   }
 
-  return (
-    scheduled - now
-  );
-}
+  const delay =
+    scheduled -
+    nowIST;
 
+  console.log(
+    `⏱ Delay calculated: ${delay} ms`
+  );
+
+  return delay;
+}
 /* -----------------------------------
    ADD NEW LEAD CALL JOB
 ------------------------------------ */
