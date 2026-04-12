@@ -61,7 +61,15 @@ const leadWorker =
         /* -----------------------------------
            ACTUAL AI CALL
         ------------------------------------ */
-       const response =
+  /* -----------------------------------
+   ACTUAL AI CALL
+------------------------------------ */
+console.log(
+  "DEBUG worker callEngine:",
+  callEngine
+);
+
+const response =
   await callEngine.initiateCall({
     _id:
       leadData.leadId ||
@@ -75,6 +83,10 @@ const leadWorker =
       0
   });
 
+console.log(
+  "📞 AI call response:",
+  response
+);
 const callStatus =
   response.success
     ? "CONNECTED"
