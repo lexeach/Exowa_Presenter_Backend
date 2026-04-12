@@ -11,10 +11,6 @@ const sarvam =
   require("../../providers/voice/sarvamProvider");
 const vobizCallRoutes = require('../../routes/vobizCallRoutes');
 
-app.use(
-  "/api/vobiz",
-  vobizCallRoutes
-);
 return config.telephonyProvider ===
   "vobiz"
   ? vobiz
