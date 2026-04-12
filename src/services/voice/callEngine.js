@@ -9,7 +9,7 @@ const exotel =
 
 const sarvam =
   require("../../providers/voice/sarvamProvider");
-const vobizCallRoutes = require('../../routes/vobizCallRoutes');
+const vobiz = require('../../routes/vobizCallRoutes');
 
 return config.telephonyProvider ===
   "vobiz"
