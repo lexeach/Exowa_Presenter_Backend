@@ -8,6 +8,12 @@ const mongoose = require("mongoose");
 const leadRoutes = require("./routes/LeadRoutes");
 const setupBullBoard = require("./queue/bullBoard");
 const startHealthScheduler = require("./monitoring/healthScheduler");
+const vobizWebhookRoutes = require("./routes/vobizWebhookRoutes");
+
+app.use(
+  "/api/vobiz",
+  vobizWebhookRoutes
+);
 
 const app = express();
 
