@@ -115,7 +115,6 @@ router.post("/answer", (req, res) => {
   try {
     console.log("📞 Vobiz answer webhook:", req.body);
 
-    // ignore hangup callback
     if (req.body.Event === "Hangup") {
       res.set("Content-Type", "text/xml");
       return res.status(200).send(
@@ -129,14 +128,8 @@ router.post("/answer", (req, res) => {
     const xml =
       '<?xml version="1.0" encoding="UTF-8"?>' +
       '<Response>' +
-      '<Speak voice="WOMAN" language="hi-IN">' +
-      'नमस्ते। मैं Exowa से बोल रही हूँ। ' +
-      'कृपया demo का समय बताइए। ' +
-      'उदाहरण: कल शाम 6 बजे।' +
-      '</Speak>' +
-      `<Gather action="${processUrl}" method="POST" timeout="8">` +
-      '<Speak language="hi-IN">कृपया अभी बोलें।</Speak>' +
-      '</Gather>' +
+      '<Speak>नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए। उदाहरण: कल शाम 6 बजे।</Speak>' +
+      `<GetInput action="${processUrl}" method="POST" inputType="speech" language="hi-IN" timeout="8" />` +
       '</Response>';
 
     console.log("📤 Sending XML:", xml);
@@ -152,7 +145,8 @@ router.post("/answer", (req, res) => {
       '<?xml version="1.0" encoding="UTF-8"?><Response><Speak>तकनीकी समस्या हुई है</Speak></Response>'
     );
   }
-});/* -----------------------------------
+});
+/* -----------------------------------
    PROCESS SLOT
 ------------------------------------ */
 router.post("/process-slot", async (req, res) => {
