@@ -9,8 +9,7 @@ const exotel =
 
 const sarvam =
   require("../../providers/voice/sarvamProvider");
-const vobizCallRoutes =
-  require("./routes/vobizCallRoutes");
+const vobizCallRoutes = require('../../routes/vobizCallRoutes');
 
 app.use(
   "/api/vobiz",
