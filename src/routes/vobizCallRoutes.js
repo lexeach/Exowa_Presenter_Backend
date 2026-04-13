@@ -51,42 +51,54 @@ function parseDateAndTime(text = "") {
 }
 
 /* ANSWER URL */
-router.get("/answer", (req, res) => {
-  const processUrl =
-    `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
+const sendAnswerXml = (req, res) => {
+  try {
+    console.log("📞 Vobiz webhook hit:", req.method, req.originalUrl);
 
-  res.set("Content-Type", "text/xml");
+    const processUrl =
+      `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
 
-  return res.status(200).send(
-    xmlResponse(`
-      <Gather action="${processUrl}" method="POST" inputType="speech" timeout="8">
+    const xml = xmlResponse(`
+      <Speak language="hi-IN">
+        नमस्ते। मैं Exowa से बोल रही हूँ।
+        कृपया demo का समय बताइए।
+        उदाहरण: कल शाम 6 बजे।
+      </Speak>
+
+      <Gather
+        action="${processUrl}"
+        method="POST"
+        inputType="speech"
+        language="hi-IN"
+        timeout="10"
+        speechTimeout="5"
+      />
+
+      <Speak language="hi-IN">
+        हमें आपका जवाब नहीं मिला।
+        कृपया दोबारा प्रयास करें।
+      </Speak>
+    `);
+
+    console.log("📤 XML sent:", xml);
+
+    res.set("Content-Type", "text/xml");
+    return res.status(200).send(xml);
+
+  } catch (error) {
+    console.error("❌ webhook error:", error);
+
+    res.set("Content-Type", "text/xml");
+
+    return res.status(200).send(
+      xmlResponse(`
         <Speak language="hi-IN">
-          नमस्ते। मैं Exowa से बोल रही हूँ।
-          कृपया demo का समय बताइए।
+          तकनीकी समस्या हुई है।
         </Speak>
-      </Gather>
-    `)
-  );
-});
-
-router.post("/answer", (req, res) => {
-  const processUrl =
-    `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
-
-  res.set("Content-Type", "text/xml");
-
-  return res.status(200).send(
-    xmlResponse(`
-      <Gather action="${processUrl}" method="POST" inputType="speech" timeout="8">
-        <Speak language="hi-IN">
-          नमस्ते। मैं Exowa से बोल रही हूँ।
-          कृपया demo का समय बताइए।
-        </Speak>
-      </Gather>
-    `)
-  );
-});
-
+      `)
+    );
+  }
+};
 /* PROCESS SLOT */
 router.post("/process-slot", async (req, res) => {
   try {
