@@ -7,7 +7,6 @@ const mongoose = require("mongoose");
 
 // Route Imports
 const leadRoutes = require("./routes/LeadRoutes");
-//const vobizWebhookRoutes = require("./routes/vobizWebhookRoutes");
 const vobizCallRoutes = require("./routes/vobizCallRoutes");
 
 const setupBullBoard = require("./queue/bullBoard");
@@ -27,7 +26,7 @@ app.use(
   })
 );
 
-// Body Parsers
+// IMPORTANT: Body parsers before routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,10 +40,15 @@ app.use((req, res, next) => {
    HEALTH CHECK
 ---------------------------- */
 app.get("/", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: "🚀 EXOWA backend is live"
   });
+});
+
+// Route debug check
+app.get("/test", (req, res) => {
+  return res.status(200).send("Route working");
 });
 
 /* ---------------------------
@@ -54,12 +58,32 @@ app.get("/", (req, res) => {
 // Lead Routes
 app.use("/api/leads", leadRoutes);
 
-// Vobiz Webhook Routes
-// IMPORTANT: XML routes for telephony provider
-//app.use("/api/vobiz/webhook", vobizWebhookRoutes);
-
-// Vobiz Call / Business Logic Routes
+// Vobiz Call Routes
 app.use("/api/vobiz", vobizCallRoutes);
+
+/* ---------------------------
+   404 HANDLER
+---------------------------- */
+app.use((req, res) => {
+  console.log("❌ Route not found:", req.method, req.originalUrl);
+
+  return res.status(404).json({
+    success: false,
+    message: "Route not found"
+  });
+});
+
+/* ---------------------------
+   ERROR HANDLER
+---------------------------- */
+app.use((err, req, res, next) => {
+  console.error("❌ Server error:", err);
+
+  return res.status(500).json({
+    success: false,
+    message: "Internal server error"
+  });
+});
 
 /* ---------------------------
    BULL BOARD
