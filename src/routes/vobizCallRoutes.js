@@ -119,9 +119,12 @@ function parseDateAndTime(speechText = "") {
 /* -----------------------------------
    ANSWER WEBHOOK
 ------------------------------------ */
-router.post("/answer", (req, res) => {
+const express = require("express");
+const router = express.Router();
+
+const sendAnswerXml = (req, res) => {
   try {
-    console.log("📞 Vobiz answer webhook:", req.body);
+    console.log("📞 Vobiz webhook hit:", req.method, req.originalUrl);
 
     const processUrl =
       `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
@@ -130,29 +133,34 @@ router.post("/answer", (req, res) => {
       '<?xml version="1.0" encoding="UTF-8"?>' +
       '<Response>' +
       `<Gather action="${processUrl}" method="POST" inputType="speech" timeout="8">` +
-      '<Speak>नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए। उदाहरण: कल शाम 6 बजे।</Speak>' +
+      '<Speak language="hi-IN">' +
+      'नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए।' +
+      '</Speak>' +
       '</Gather>' +
-      '<Speak>हमें आपका जवाब नहीं मिला। धन्यवाद।</Speak>' +
       '</Response>';
 
-    console.log("📤 FINAL XML:", xml);
+    console.log("📤 XML sent:", xml);
 
     res.set("Content-Type", "text/xml");
     return res.status(200).send(xml);
 
   } catch (error) {
-    console.error("❌ answer webhook error:", error);
+    console.error("❌ webhook error:", error);
 
-    const errorXml =
+    res.set("Content-Type", "text/xml");
+    return res.status(200).send(
       '<?xml version="1.0" encoding="UTF-8"?>' +
       '<Response>' +
       '<Speak>तकनीकी समस्या हुई है</Speak>' +
-      '</Response>';
-
-    res.set("Content-Type", "text/xml");
-    return res.status(200).send(errorXml);
+      '</Response>'
+    );
   }
-});
+};
+
+router.get("/answer", sendAnswerXml);
+router.post("/answer", sendAnswerXml);
+
+module.exports = router;
 /* -----------------------------------
    PROCESS SLOT
 ------------------------------------ */
