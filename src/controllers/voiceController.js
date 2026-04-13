@@ -1,4 +1,4 @@
-exports.answerCall = async (req, res) => {
+const answerCall = async (req, res) => {
   console.log("📞 Vobiz answer route hit", req.body);
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -19,4 +19,20 @@ exports.answerCall = async (req, res) => {
 
   res.set("Content-Type", "text/xml");
   return res.status(200).send(xml);
+};
+
+const processSlot = async (req, res) => {
+  console.log("🎤 process-slot hit", req.body);
+
+  return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak language="hi-IN">
+    धन्यवाद। आपका response record हो गया।
+  </Speak>
+</Response>`);
+};
+
+module.exports = {
+  answerCall,
+  processSlot
 };
