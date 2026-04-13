@@ -1,38 +1,158 @@
-const answerCall = async (req, res) => {
-  console.log("📞 Vobiz answer route hit", req.body);
+const axios = require("axios");
 
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+/* ----------------------------------------
+   1. FIRST CALL ANSWER XML
+----------------------------------------- */
+exports.answerCall = async (req, res) => {
+  try {
+    console.log("📞 Vobiz answer route hit", req.body);
+
+    res.set("Content-Type", "text/xml");
+
+    return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+
   <Speak language="hi-IN">
-    नमस्ते।
-    मैं Exowa से बोल रही हूँ।
-    कृपया demo class का समय बताइए।
+    नमस्ते। मैं Exowa से बोल रही हूँ।
+    कृपया demo का समय बताइए।
+    उदाहरण: कल शाम 6 बजे।
   </Speak>
 
   <Record
-    action="${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot"
+    action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
     method="POST"
-    maxLength="8"
+    maxLength="10"
     playBeep="true"
+    timeout="8"
   />
-</Response>`;
 
-  res.set("Content-Type", "text/xml");
-  return res.status(200).send(xml);
-};
+</Response>
+    `);
 
-const processSlot = async (req, res) => {
-  console.log("🎤 process-slot hit", req.body);
+  } catch (error) {
+    console.error("❌ answerCall Error:", error.message);
 
-  return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+    res.set("Content-Type", "text/xml");
+
+    return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
-    धन्यवाद। आपका response record हो गया।
+    माफ कीजिए, अभी सिस्टम उपलब्ध नहीं है।
   </Speak>
-</Response>`);
+</Response>
+    `);
+  }
 };
 
-module.exports = {
-  answerCall,
-  processSlot
+
+/* ----------------------------------------
+   2. PROCESS USER SPEECH
+----------------------------------------- */
+exports.processSlot = async (req, res) => {
+  try {
+    console.log("🎤 process-slot hit", req.body);
+
+    const audioUrl = req.body.RecordUrl || req.body.RecordFile;
+
+    if (!audioUrl) {
+      res.set("Content-Type", "text/xml");
+
+      return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak language="hi-IN">
+    माफ कीजिए, आपकी आवाज रिकॉर्ड नहीं हो पाई।
+  </Speak>
+</Response>
+      `);
+    }
+
+    console.log("🎧 Audio URL:", audioUrl);
+
+    /* ----------------------------------------
+       3. SARVAM STT CALL
+    ----------------------------------------- */
+    const sttResponse = await axios.post(
+      "https://api.sarvam.ai/speech-to-text",
+      {
+        audio_url: audioUrl,
+        language_code: "hi-IN"
+      },
+      {
+        headers: {
+          "api-subscription-key": process.env.SARVAM_API_KEY,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    console.log("🧠 STT Raw Response:", sttResponse.data);
+
+    const transcript =
+      sttResponse.data?.transcript ||
+      sttResponse.data?.text ||
+      "";
+
+    console.log("📝 Transcript:", transcript);
+
+    /* ----------------------------------------
+       4. SIMPLE AI RESPONSE ENGINE
+    ----------------------------------------- */
+    let replyText =
+      "धन्यवाद। हमने आपका demo request नोट कर लिया है।";
+
+    if (transcript.includes("कल")) {
+      replyText =
+        "ठीक है। आपका demo कल शाम 6 बजे के लिए बुक कर दिया गया है।";
+    }
+
+    if (transcript.includes("आज")) {
+      replyText =
+        "ठीक है। आपका demo आज शाम 6 बजे के लिए बुक कर दिया गया है।";
+    }
+
+    if (transcript.includes("सुबह")) {
+      replyText =
+        "ठीक है। आपका demo सुबह के समय बुक कर दिया गया है।";
+    }
+
+    if (transcript.includes("शाम")) {
+      replyText =
+        "ठीक है। आपका demo शाम के समय बुक कर दिया गया है।";
+    }
+
+    /* ----------------------------------------
+       5. RETURN XML VOICE RESPONSE
+    ----------------------------------------- */
+    res.set("Content-Type", "text/xml");
+
+    return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak language="hi-IN">
+    ${replyText}
+  </Speak>
+</Response>
+    `);
+
+  } catch (error) {
+    console.error(
+      "❌ processSlot Error:",
+      error.response?.data || error.message
+    );
+
+    res.set("Content-Type", "text/xml");
+
+    return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak language="hi-IN">
+    माफ कीजिए, आपकी बात समझ नहीं पाई।
+    कृपया दोबारा बताइए।
+  </Speak>
+</Response>
+    `);
+  }
 };
