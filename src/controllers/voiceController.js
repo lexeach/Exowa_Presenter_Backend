@@ -70,7 +70,11 @@ exports.processSlot = async (req, res) => {
     }
 
     console.log("🎧 Audio URL:", audioUrl);
-
+console.log(
+  "🔑 API KEY PRESENT:",
+  !!process.env.SARVAM_API_KEY
+);
+     
     /* ----------------------------------------
        3. SARVAM STT CALL
     ----------------------------------------- */
