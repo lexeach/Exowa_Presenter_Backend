@@ -87,6 +87,7 @@ const sendAnswerXml = (req, res) => {
 
   } catch (error) {
     console.error("❌ webhook error:", error);
+    console.log("✅ vobizCallRoutes loaded");
 
     res.set("Content-Type", "text/xml");
 
@@ -148,6 +149,7 @@ router.post("/process-slot", async (req, res) => {
 
   } catch (error) {
     console.error(error);
+    
 
     res.set("Content-Type", "text/xml");
 
