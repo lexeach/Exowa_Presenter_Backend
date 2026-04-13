@@ -183,7 +183,10 @@ function parseHindiDateTime(text) {
 
   return {
     date: targetDate,
-    formatted: targetDate.toLocaleString("en-IN")
+    formatted: targetDate.toLocaleString("en-IN", {
+  dateStyle: "medium",
+  timeStyle: "short"
+})
   };
 }
 
