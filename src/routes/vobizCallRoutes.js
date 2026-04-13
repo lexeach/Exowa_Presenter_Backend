@@ -2,9 +2,6 @@ const express = require("express");
 const router = express.Router();
 const Lead = require("../models/Lead");
 
-/* -----------------------------------
-   XML HELPER
------------------------------------- */
 function xmlResponse(innerXml = "") {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -12,9 +9,6 @@ ${innerXml}
 </Response>`;
 }
 
-/* -----------------------------------
-   HELPER FUNCTIONS
------------------------------------- */
 function normalizePhone(phone = "") {
   return phone.replace(/^(\+91|91)/, "").trim();
 }
@@ -27,38 +21,28 @@ function formatDateHindi(date) {
   });
 }
 
-function parseDateAndTime(speechText = "") {
-  const text = speechText.toLowerCase().trim();
+function parseDateAndTime(text = "") {
+  const speech = text.toLowerCase().trim();
 
   let demoDate = new Date();
   let demoTime = "6:00 PM";
 
   if (
-    text.includes("2") ||
-    text.includes("दो") ||
-    text.includes("दोपहर") ||
-    text.includes("dopahar")
+    speech.includes("2") ||
+    speech.includes("दो") ||
+    speech.includes("दोपहर")
   ) {
     demoTime = "2:00 PM";
   } else if (
-    text.includes("6") ||
-    text.includes("छह") ||
-    text.includes("शाम") ||
-    text.includes("shaam")
+    speech.includes("6") ||
+    speech.includes("शाम")
   ) {
     demoTime = "6:00 PM";
-  } else if (
-    text.includes("11") ||
-    text.includes("ग्यारह") ||
-    text.includes("सुबह")
-  ) {
-    demoTime = "11:00 AM";
   }
 
   if (
-    text.includes("कल") ||
-    text.includes("kal") ||
-    text.includes("tomorrow")
+    speech.includes("कल") ||
+    speech.includes("kal")
   ) {
     demoDate.setDate(demoDate.getDate() + 1);
   }
@@ -66,69 +50,50 @@ function parseDateAndTime(speechText = "") {
   return { demoDate, demoTime };
 }
 
-/* -----------------------------------
-   ANSWER WEBHOOK
------------------------------------- */
-const sendAnswerXml = (req, res) => {
-  try {
-    console.log("📞 Vobiz webhook hit:", req.method, req.originalUrl);
+/* ANSWER URL */
+router.get("/answer", (req, res) => {
+  const processUrl =
+    `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
 
-    const processUrl =
-      `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
+  res.set("Content-Type", "text/xml");
 
-    const xml = xmlResponse(`
+  return res.status(200).send(
+    xmlResponse(`
       <Gather action="${processUrl}" method="POST" inputType="speech" timeout="8">
         <Speak language="hi-IN">
-          नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए।
+          नमस्ते। मैं Exowa से बोल रही हूँ।
+          कृपया demo का समय बताइए।
         </Speak>
       </Gather>
-    `);
+    `)
+  );
+});
 
-    console.log("📤 XML sent:", xml);
+router.post("/answer", (req, res) => {
+  const processUrl =
+    `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
 
-    res.set("Content-Type", "text/xml");
-    return res.status(200).send(xml);
+  res.set("Content-Type", "text/xml");
 
-  } catch (error) {
-    console.error("❌ webhook error:", error);
+  return res.status(200).send(
+    xmlResponse(`
+      <Gather action="${processUrl}" method="POST" inputType="speech" timeout="8">
+        <Speak language="hi-IN">
+          नमस्ते। मैं Exowa से बोल रही हूँ।
+          कृपया demo का समय बताइए।
+        </Speak>
+      </Gather>
+    `)
+  );
+});
 
-    res.set("Content-Type", "text/xml");
-    return res.status(200).send(
-      xmlResponse(`<Speak>तकनीकी समस्या हुई है</Speak>`)
-    );
-  }
-};
-
-router.get("/answer", sendAnswerXml);
-router.post("/answer", sendAnswerXml);
-
-/* -----------------------------------
-   PROCESS SLOT
------------------------------------- */
+/* PROCESS SLOT */
 router.post("/process-slot", async (req, res) => {
   try {
-    console.log("🎤 Slot webhook body:", req.body);
-
     const speechText =
       req.body.Speech ||
       req.body.speech ||
-      req.body.input ||
-      req.body.text ||
-      req.body.Transcript ||
       "";
-
-    console.log("🎤 Parent said:", speechText);
-
-    if (!speechText.trim()) {
-      res.set("Content-Type", "text/xml");
-      return res.status(200).send(
-        xmlResponse(`
-          <Speak language="hi-IN">
-            कृपया समय स्पष्ट रूप से बताएं।
-          </Speak>
-        `)
-      );
-    }
 
     const { demoDate, demoTime } =
       parseDateAndTime(speechText);
@@ -147,10 +112,12 @@ router.post("/process-slot", async (req, res) => {
         { new: true }
       );
 
+    res.set("Content-Type", "text/xml");
+
     if (!updatedLead) {
       return res.status(200).send(
         xmlResponse(`
-          <Speak>आपका नंबर रिकॉर्ड में नहीं मिला।</Speak>
+          <Speak>नंबर रिकॉर्ड में नहीं मिला।</Speak>
         `)
       );
     }
@@ -161,13 +128,16 @@ router.post("/process-slot", async (req, res) => {
     return res.status(200).send(
       xmlResponse(`
         <Speak language="hi-IN">
-          धन्यवाद। आपका demo ${formattedDate} को ${demoTime} पर confirm हो गया है।
+          धन्यवाद।
+          आपका demo ${formattedDate} को ${demoTime} पर confirm हो गया है।
         </Speak>
       `)
     );
 
   } catch (error) {
-    console.error("❌ process-slot error:", error);
+    console.error(error);
+
+    res.set("Content-Type", "text/xml");
 
     return res.status(200).send(
       xmlResponse(`
