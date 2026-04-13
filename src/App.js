@@ -59,7 +59,7 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/vobiz/webhook", vobizWebhookRoutes);
 
 // Vobiz Call / Business Logic Routes
-app.use("/api/vobiz/call", vobizCallRoutes);
+app.use("/api/vobiz", vobizCallRoutes);
 
 /* ---------------------------
    BULL BOARD
