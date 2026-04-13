@@ -9,14 +9,15 @@ const mongoose = require("mongoose");
 const leadRoutes = require("./routes/LeadRoutes");
 const vobizWebhookRoutes = require("./routes/vobizWebhookRoutes");
 const vobizCallRoutes = require("./routes/vobizCallRoutes");
+
 const setupBullBoard = require("./queue/bullBoard");
 const startHealthScheduler = require("./monitoring/healthScheduler");
 
-// 1. INITIALIZE APP FIRST 🚀
+// Initialize App
 const app = express();
 
 /* ---------------------------
-    MIDDLEWARES
+   MIDDLEWARES
 ---------------------------- */
 app.use(
   cors({
@@ -26,7 +27,7 @@ app.use(
   })
 );
 
-// Body Parsers (Must be above routes!)
+// Body Parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -37,7 +38,7 @@ app.use((req, res, next) => {
 });
 
 /* ---------------------------
-    HEALTH CHECK
+   HEALTH CHECK
 ---------------------------- */
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -47,22 +48,26 @@ app.get("/", (req, res) => {
 });
 
 /* ---------------------------
-    API ROUTES
+   API ROUTES
 ---------------------------- */
+
 // Lead Routes
 app.use("/api/leads", leadRoutes);
 
-// Vobiz Routes (Webhook and Calls)
-app.use("/api/vobiz", vobizWebhookRoutes);
-app.use("/api/vobiz", vobizCallRoutes);
+// Vobiz Webhook Routes
+// IMPORTANT: XML routes for telephony provider
+app.use("/api/vobiz/webhook", vobizWebhookRoutes);
+
+// Vobiz Call / Business Logic Routes
+app.use("/api/vobiz/call", vobizCallRoutes);
 
 /* ---------------------------
-    BULL BOARD
+   BULL BOARD
 ---------------------------- */
 setupBullBoard(app);
 
 /* ---------------------------
-    MONGODB CONNECTION
+   MONGODB CONNECTION
 ---------------------------- */
 mongoose
   .connect(process.env.MONGO_URI)
@@ -74,14 +79,14 @@ mongoose
   });
 
 /* ---------------------------
-    SCHEDULER
+   SCHEDULER
 ---------------------------- */
 startHealthScheduler();
 
 /* ---------------------------
-    SERVER START
+   SERVER START
 ---------------------------- */
-const PORT = process.env.PORT || 10000; // Updated to 10000 to match Render's default
+const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
