@@ -135,10 +135,19 @@ if (!transcript) {
     `ठीक है। आपका demo ${parsedSlot.formatted} के लिए बुक कर दिया गया है।`;
 } 
  await Lead.updateOne(
-  { referralPhone: req.body.To?.replace(/^91/, "") },
+  { phone: req.body.To?.replace(/^91/, "") },
   {
     transcript,
-    demoSlot: parsedSlot?.date || null,
+    demoDate: parsedSlot
+      ? parsedSlot.date.toLocaleDateString("en-IN")
+      : "",
+    demoTime: parsedSlot
+      ? parsedSlot.date.toLocaleTimeString("en-IN", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true
+        })
+      : "",
     updatedAt: new Date()
   }
 );
