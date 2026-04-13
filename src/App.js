@@ -7,7 +7,7 @@ const mongoose = require("mongoose");
 
 // Route Imports
 const leadRoutes = require("./routes/LeadRoutes");
-const vobizWebhookRoutes = require("./routes/vobizWebhookRoutes");
+//const vobizWebhookRoutes = require("./routes/vobizWebhookRoutes");
 const vobizCallRoutes = require("./routes/vobizCallRoutes");
 
 const setupBullBoard = require("./queue/bullBoard");
@@ -56,7 +56,7 @@ app.use("/api/leads", leadRoutes);
 
 // Vobiz Webhook Routes
 // IMPORTANT: XML routes for telephony provider
-app.use("/api/vobiz/webhook", vobizWebhookRoutes);
+//app.use("/api/vobiz/webhook", vobizWebhookRoutes);
 
 // Vobiz Call / Business Logic Routes
 app.use("/api/vobiz", vobizCallRoutes);
