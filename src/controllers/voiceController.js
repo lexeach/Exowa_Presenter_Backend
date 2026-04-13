@@ -1,3 +1,4 @@
+const Lead = require("../models/Lead");
 const chrono = require("chrono-node");
 const axios = require("axios");
 const FormData = require("form-data");
