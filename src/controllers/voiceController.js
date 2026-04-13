@@ -20,13 +20,13 @@ exports.answerCall = async (req, res) => {
   </Speak>
 
   <Record
-    action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
-    method="POST"
-    maxLength="10"
-    playBeep="true"
-    timeout="8"
-  />
-</Response>
+  action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
+  method="POST"
+  maxLength="10"
+  playBeep="true"
+  timeout="8"
+  ></Record>
+  </Response>
     `);
 
   } catch (error) {
