@@ -50,25 +50,88 @@ exports.answerCall = async (req, res) => {
 /* ----------------------------------------
    2. PROCESS USER SPEECH
 ----------------------------------------- */
+const axios = require("axios");
+const FormData = require("form-data");
+
 exports.processSlot = async (req, res) => {
   try {
     console.log("🎤 process-slot hit", req.body);
 
     const audioUrl = req.body.RecordUrl || req.body.RecordFile;
 
-    if (!audioUrl) {
-      res.set("Content-Type", "text/xml");
+    console.log("🎧 Audio URL:", audioUrl);
 
-      return res.status(200).send(`
-<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Speak language="hi-IN">
-    माफ कीजिए, आपकी आवाज रिकॉर्ड नहीं हो पाई।
-  </Speak>
-</Response>
-      `);
+    console.log(
+      "🔑 API KEY PRESENT:",
+      !!process.env.SARVAM_API_KEY
+    );
+
+    // STEP 1: download audio from vobiz
+    const audioResponse = await axios.get(audioUrl, {
+      responseType: "arraybuffer"
+    });
+
+    console.log("✅ Audio downloaded");
+
+    // STEP 2: create form-data
+    const form = new FormData();
+
+    form.append("file", Buffer.from(audioResponse.data), {
+      filename: "recording.mp3",
+      contentType: "audio/mpeg"
+    });
+
+    form.append("language_code", "hi-IN");
+
+    // STEP 3: send to sarvam
+    const sttResponse = await axios.post(
+      "https://api.sarvam.ai/speech-to-text",
+      form,
+      {
+        headers: {
+          ...form.getHeaders(),
+          "api-subscription-key":
+            process.env.SARVAM_API_KEY
+        }
+      }
+    );
+
+    console.log(
+      "📝 STT Response:",
+      sttResponse.data
+    );
+
+    const userSpeech =
+      sttResponse.data.transcript || "";
+
+    let reply =
+      "धन्यवाद। आपका demo कल शाम 6 बजे के लिए schedule कर दिया गया है।";
+
+    if (!userSpeech) {
+      reply =
+        "माफ कीजिए, मैं आपकी बात समझ नहीं पाई। कृपया दोबारा बताइए।";
     }
 
+    return res.send(`
+<Response>
+  <Speak language="hi-IN">${reply}</Speak>
+</Response>
+    `);
+  } catch (error) {
+    console.error(
+      "❌ processSlot Error:",
+      error.response?.data || error.message
+    );
+
+    return res.send(`
+<Response>
+  <Speak language="hi-IN">
+    माफ कीजिए, तकनीकी समस्या आ गई है।
+  </Speak>
+</Response>
+    `);
+  }
+};
     console.log("🎧 Audio URL:", audioUrl);
 console.log(
   "🔑 API KEY PRESENT:",
