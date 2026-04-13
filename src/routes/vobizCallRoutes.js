@@ -123,46 +123,28 @@ router.post("/answer", (req, res) => {
   try {
     console.log("📞 Vobiz answer webhook:", req.body);
 
-    // Handle Hangup event with a valid empty XML response
-    if (req.body.Event === "Hangup") {
-      res.set("Content-Type", "text/xml");
-      return res.status(200).send(xmlResponse());
-    }
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak>
+    नमस्ते। मैं Exowa से बोल रही हूँ।
+  </Speak>
+</Response>`;
 
-    const processUrl = `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
+    console.log("📤 TEST XML:", xml);
 
-    /**
-     * FIX: Wrapped the initial greeting and prompt inside <Speak> tags.
-     * The <Gather> tag is used to capture user speech input.
-     */
-    const xml = xmlResponse(`
-  <Gather inputType="speech" action="${processUrl}" method="POST" language="hi-IN" timeout="8">
-    <Speak language="hi-IN">
-      नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए। उदाहरण: कल शाम 6 बजे।
-    </Speak>
-  </Gather>
-  <Speak language="hi-IN">
-    हमें आपका जवाब नहीं मिला। धन्यवाद।
-  </Speak>`);
-
-    console.log("📤 Sending XML:", xml);
-
-    res.set("Content-Type", "text/xml");
+    res.set("Content-Type", "application/xml");
     return res.status(200).send(xml);
 
   } catch (error) {
-    console.error("❌ answer webhook error:", error);
+    console.error(error);
 
-    res.set("Content-Type", "text/xml");
-    return res.status(200).send(
-      xmlResponse(`
-    <Speak language="hi-IN">
-      तकनीकी समस्या हुई है।
-    </Speak>`)
-    );
+    res.set("Content-Type", "application/xml");
+    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak>तकनीकी समस्या हुई है</Speak>
+</Response>`);
   }
 });
-
 /* -----------------------------------
    PROCESS SLOT
 ------------------------------------ */
