@@ -8,10 +8,9 @@ exports.answerCall = async (req, res) => {
   try {
     console.log("📞 Vobiz answer route hit", req.body);
 
-    res.set("Content-Type", "text/xml");
+    res.setHeader("Content-Type", "text/xml");
 
-    return res.status(200).send(`
-<?xml version="1.0" encoding="UTF-8"?>
+    const xmlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
     नमस्ते। मैं Exowa से बोल रही हूँ।
@@ -26,22 +25,21 @@ exports.answerCall = async (req, res) => {
     playBeep="true"
     timeout="8"
   />
-</Response>
-    `);
+</Response>`;
+
+    return res.status(200).send(xmlResponse);
 
   } catch (error) {
     console.error("❌ answerCall Error:", error.message);
 
-    res.set("Content-Type", "text/xml");
+    res.setHeader("Content-Type", "text/xml");
 
-    return res.status(200).send(`
-<?xml version="1.0" encoding="UTF-8"?>
+    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
     माफ कीजिए, अभी सिस्टम उपलब्ध नहीं है।
   </Speak>
-</Response>
-    `);
+</Response>`);
   }
 };
 
@@ -59,12 +57,10 @@ exports.processSlot = async (req, res) => {
       throw new Error("Audio URL missing from Vobiz callback");
     }
 
-    console.log("🎧 Audio URL:", audioUrl);
+    const sarvamKey = process.env.SARVAM_API_KEY?.trim();
 
-    console.log(
-      "🔑 API KEY PRESENT:",
-      !!process.env.SARVAM_API_KEY
-    );
+    console.log("🎧 Audio URL:", audioUrl);
+    console.log("🔑 API KEY PRESENT:", !!sarvamKey);
 
     /* =========================================
        STEP 1: DOWNLOAD AUDIO FILE
@@ -74,6 +70,7 @@ exports.processSlot = async (req, res) => {
     });
 
     console.log("✅ Audio downloaded from Vobiz");
+    console.log("📦 Audio size:", audioResponse.data.length);
 
     /* =========================================
        STEP 2: CREATE MULTIPART FORM DATA
@@ -87,25 +84,49 @@ exports.processSlot = async (req, res) => {
 
     form.append("language_code", "hi-IN");
 
+    console.log("📤 Sending audio to Sarvam STT...");
+
     /* =========================================
        STEP 3: SEND TO SARVAM STT
     ========================================= */
-    const sttResponse = await axios.post(
-  "https://api.sarvam.ai/speech-to-text",
-  form,
-  {
-    headers: {
-      ...form.getHeaders(),
-      Authorization: `Bearer ${process.env.SARVAM_API_KEY}`
+    let sttResponse;
+
+    try {
+      // Primary auth method
+      sttResponse = await axios.post(
+        "https://api.sarvam.ai/speech-to-text",
+        form,
+        {
+          headers: {
+            ...form.getHeaders(),
+            Authorization: `Bearer ${sarvamKey}`
+          },
+          timeout: 30000
+        }
+      );
+    } catch (primaryError) {
+      console.log("⚠️ Bearer auth failed, trying api-subscription-key");
+
+      // Fallback auth method
+      sttResponse = await axios.post(
+        "https://api.sarvam.ai/speech-to-text",
+        form,
+        {
+          headers: {
+            ...form.getHeaders(),
+            "api-subscription-key": sarvamKey
+          },
+          timeout: 30000
+        }
+      );
     }
-  }
-);
 
     console.log("🧠 STT Raw Response:", sttResponse.data);
 
     const transcript =
       sttResponse.data?.transcript ||
       sttResponse.data?.text ||
+      sttResponse.data?.result ||
       "";
 
     console.log("📝 Transcript:", transcript);
@@ -116,7 +137,7 @@ exports.processSlot = async (req, res) => {
     let replyText =
       "धन्यवाद। हमने आपका demo request नोट कर लिया है।";
 
-    if (!transcript) {
+    if (!transcript || transcript.trim() === "") {
       replyText =
         "माफ कीजिए, आपकी बात समझ नहीं पाई। कृपया दोबारा बताइए।";
     } else if (transcript.includes("कल")) {
@@ -136,32 +157,40 @@ exports.processSlot = async (req, res) => {
     /* =========================================
        STEP 5: RETURN XML RESPONSE
     ========================================= */
-    res.set("Content-Type", "text/xml");
+    res.setHeader("Content-Type", "text/xml");
 
-    return res.status(200).send(`
-<?xml version="1.0" encoding="UTF-8"?>
+    const responseXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
     ${replyText}
   </Speak>
-</Response>
-    `);
+</Response>`;
+
+    return res.status(200).send(responseXml);
 
   } catch (error) {
     console.error(
-  "❌ processSlot Error:",
-  error.response?.data?.toString() || error.message
-);
+      "❌ processSlot Error Status:",
+      error.response?.status
+    );
 
-    res.set("Content-Type", "text/xml");
+    console.error(
+      "❌ processSlot Error Data:",
+      error.response?.data?.toString()
+    );
 
-    return res.status(200).send(`
-<?xml version="1.0" encoding="UTF-8"?>
+    console.error(
+      "❌ processSlot Error Message:",
+      error.message
+    );
+
+    res.setHeader("Content-Type", "text/xml");
+
+    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
     माफ कीजिए, तकनीकी समस्या आ गई है।
   </Speak>
-</Response>
-    `);
+</Response>`);
   }
 };
