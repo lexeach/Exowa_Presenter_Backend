@@ -91,16 +91,15 @@ exports.processSlot = async (req, res) => {
        STEP 3: SEND TO SARVAM STT
     ========================================= */
     const sttResponse = await axios.post(
-      "https://api.sarvam.ai/speech-to-text",
-      form,
-      {
-        headers: {
-          ...form.getHeaders(),
-          "api-subscription-key":
-            process.env.SARVAM_API_KEY
-        }
-      }
-    );
+  "https://api.sarvam.ai/speech-to-text",
+  form,
+  {
+    headers: {
+      ...form.getHeaders(),
+      Authorization: `Bearer ${process.env.SARVAM_API_KEY}`
+    }
+  }
+);
 
     console.log("🧠 STT Raw Response:", sttResponse.data);
 
@@ -150,9 +149,9 @@ exports.processSlot = async (req, res) => {
 
   } catch (error) {
     console.error(
-      "❌ processSlot Error:",
-      error.response?.data || error.message
-    );
+  "❌ processSlot Error:",
+  error.response?.data?.toString() || error.message
+);
 
     res.set("Content-Type", "text/xml");
 
