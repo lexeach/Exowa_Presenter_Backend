@@ -24,24 +24,29 @@ const sendAnswerXml = (req, res) => {
       `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
 
     const xml = xmlResponse(`
-      <Gather action="${processUrl}" method="POST" inputType="speech" timeout="8">
-        <Speak language="hi-IN">
-          नमस्ते। मैं Exowa से बोल रही हूँ।
-          कृपया demo का समय बताइए।
-          उदाहरण: कल शाम 6 बजे।
-        </Speak>
-      </Gather>
+      <Speak language="hi-IN">
+        नमस्ते। मैं Exowa से बोल रही हूँ।
+        कृपया demo का समय बताइए।
+        उदाहरण: कल शाम 6 बजे।
+      </Speak>
+
+      <Gather
+        action="${processUrl}"
+        method="POST"
+        inputType="speech"
+        timeout="10"
+        speechTimeout="auto"
+        finishOnKey="#"
+      />
     `);
 
     res.set("Content-Type", "text/xml");
-
     return res.status(200).send(xml);
 
   } catch (error) {
     console.error("❌ answer route error:", error);
 
     res.set("Content-Type", "text/xml");
-
     return res.status(200).send(
       xmlResponse(`
         <Speak>तकनीकी समस्या हुई है।</Speak>
@@ -49,7 +54,6 @@ const sendAnswerXml = (req, res) => {
     );
   }
 };
-
 /* IMPORTANT */
 router.get("/answer", sendAnswerXml);
 router.post("/answer", sendAnswerXml);
