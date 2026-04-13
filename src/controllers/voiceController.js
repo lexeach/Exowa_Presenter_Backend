@@ -8,9 +8,9 @@ exports.answerCall = async (req, res) => {
   try {
     console.log("📞 Vobiz answer route hit", req.body);
 
-    res.setHeader("Content-Type", "text/xml");
+    res.set("Content-Type", "text/xml");
 
-    const xmlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
     नमस्ते। मैं Exowa से बोल रही हूँ।
@@ -25,14 +25,11 @@ exports.answerCall = async (req, res) => {
     playBeep="true"
     timeout="8"
   />
-</Response>`;
-
-    return res.status(200).send(xmlResponse);
-
+</Response>`);
   } catch (error) {
     console.error("❌ answerCall Error:", error.message);
 
-    res.setHeader("Content-Type", "text/xml");
+    res.set("Content-Type", "text/xml");
 
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -42,7 +39,6 @@ exports.answerCall = async (req, res) => {
 </Response>`);
   }
 };
-
 
 /* =========================================
    2. PROCESS USER SPEECH
@@ -57,16 +53,24 @@ exports.processSlot = async (req, res) => {
       throw new Error("Audio URL missing from Vobiz callback");
     }
 
-    const sarvamKey = process.env.SARVAM_API_KEY?.trim();
-
     console.log("🎧 Audio URL:", audioUrl);
-    console.log("🔑 API KEY PRESENT:", !!sarvamKey);
+
+    console.log("🔑 VOBIZ AUTH PRESENT:", {
+      authId: !!process.env.VOBIZ_AUTH_ID,
+      authToken: !!process.env.VOBIZ_AUTH_TOKEN
+    });
+
+    console.log("🔑 SARVAM KEY PRESENT:", !!process.env.SARVAM_API_KEY);
 
     /* =========================================
-       STEP 1: DOWNLOAD AUDIO FILE
+       STEP 1: DOWNLOAD AUDIO FROM VOBIZ
     ========================================= */
     const audioResponse = await axios.get(audioUrl, {
-      responseType: "arraybuffer"
+      responseType: "arraybuffer",
+      headers: {
+        "X-Auth-ID": process.env.VOBIZ_AUTH_ID,
+        "X-Auth-Token": process.env.VOBIZ_AUTH_TOKEN
+      }
     });
 
     console.log("✅ Audio downloaded from Vobiz");
@@ -84,49 +88,25 @@ exports.processSlot = async (req, res) => {
 
     form.append("language_code", "hi-IN");
 
-    console.log("📤 Sending audio to Sarvam STT...");
-
     /* =========================================
        STEP 3: SEND TO SARVAM STT
     ========================================= */
-    let sttResponse;
-
-    try {
-      // Primary auth method
-      sttResponse = await axios.post(
-        "https://api.sarvam.ai/speech-to-text",
-        form,
-        {
-          headers: {
-            ...form.getHeaders(),
-            Authorization: `Bearer ${sarvamKey}`
-          },
-          timeout: 30000
+    const sttResponse = await axios.post(
+      "https://api.sarvam.ai/speech-to-text",
+      form,
+      {
+        headers: {
+          ...form.getHeaders(),
+          Authorization: `Bearer ${process.env.SARVAM_API_KEY}`
         }
-      );
-    } catch (primaryError) {
-      console.log("⚠️ Bearer auth failed, trying api-subscription-key");
-
-      // Fallback auth method
-      sttResponse = await axios.post(
-        "https://api.sarvam.ai/speech-to-text",
-        form,
-        {
-          headers: {
-            ...form.getHeaders(),
-            "api-subscription-key": sarvamKey
-          },
-          timeout: 30000
-        }
-      );
-    }
+      }
+    );
 
     console.log("🧠 STT Raw Response:", sttResponse.data);
 
     const transcript =
       sttResponse.data?.transcript ||
       sttResponse.data?.text ||
-      sttResponse.data?.result ||
       "";
 
     console.log("📝 Transcript:", transcript);
@@ -137,7 +117,7 @@ exports.processSlot = async (req, res) => {
     let replyText =
       "धन्यवाद। हमने आपका demo request नोट कर लिया है।";
 
-    if (!transcript || transcript.trim() === "") {
+    if (!transcript) {
       replyText =
         "माफ कीजिए, आपकी बात समझ नहीं पाई। कृपया दोबारा बताइए।";
     } else if (transcript.includes("कल")) {
@@ -154,20 +134,19 @@ exports.processSlot = async (req, res) => {
         "ठीक है। आपका demo शाम के समय बुक कर दिया गया है।";
     }
 
+    console.log("🤖 Final Reply:", replyText);
+
     /* =========================================
        STEP 5: RETURN XML RESPONSE
     ========================================= */
-    res.setHeader("Content-Type", "text/xml");
+    res.set("Content-Type", "text/xml");
 
-    const responseXml = `<?xml version="1.0" encoding="UTF-8"?>
+    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
     ${replyText}
   </Speak>
-</Response>`;
-
-    return res.status(200).send(responseXml);
-
+</Response>`);
   } catch (error) {
     console.error(
       "❌ processSlot Error Status:",
@@ -184,7 +163,7 @@ exports.processSlot = async (req, res) => {
       error.message
     );
 
-    res.setHeader("Content-Type", "text/xml");
+    res.set("Content-Type", "text/xml");
 
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
