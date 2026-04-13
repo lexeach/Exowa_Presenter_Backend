@@ -4,7 +4,13 @@ function parseHindiDateTime(text) {
   const now = new Date();
   let targetDate = new Date(now);
 
-  text = text.trim().replace(/[।,.]/g, "");
+  // normalize text
+  text = text
+    .trim()
+    .replace(/[।,.]/g, "")
+    .replace(/\s+/g, " ");
+
+  console.log("🧪 Normalized text:", text);
 
   const hindiNumberMap = {
     "एक": 1,
@@ -55,7 +61,9 @@ function parseHindiDateTime(text) {
   let hour = null;
   let minute = 0;
 
-  // Relative day
+  // =============================
+  // RELATIVE DAY
+  // =============================
   if (text.includes("आज")) {
   } else if (text.includes("कल")) {
     targetDate.setDate(now.getDate() + 1);
@@ -63,7 +71,9 @@ function parseHindiDateTime(text) {
     targetDate.setDate(now.getDate() + 2);
   }
 
-  // Weekday parse
+  // =============================
+  // WEEKDAY
+  // =============================
   for (const [weekday, dayIndex] of Object.entries(weekdayMap)) {
     if (text.includes(weekday)) {
       const currentDay = now.getDay();
@@ -76,21 +86,25 @@ function parseHindiDateTime(text) {
     }
   }
 
-  // Date parse
+  // =============================
+  // DATE PARSE
+  // =============================
   const digitDateMatch = text.match(/(\d{1,2})\s*तारीख/);
 
   if (digitDateMatch) {
     day = parseInt(digitDateMatch[1]);
   } else {
     for (const [word, num] of Object.entries(hindiNumberMap)) {
-      if (text.includes(`${word} तारीख`)) {
+      const regex = new RegExp(`${word}\\s*तारीख`);
+      if (regex.test(text)) {
         day = num;
         break;
       }
     }
   }
 
-  // Safe future date handling
+  console.log("📅 Parsed day:", day);
+
   if (day !== null) {
     targetDate.setFullYear(
       now.getFullYear(),
@@ -98,12 +112,15 @@ function parseHindiDateTime(text) {
       day
     );
 
+    // move to next month if past date
     if (targetDate < now) {
       targetDate.setMonth(targetDate.getMonth() + 1);
     }
   }
 
-  // Digit time parse
+  // =============================
+  // DIGIT TIME
+  // =============================
   const digitTimeMatch = text.match(
     /(\d{1,2})(?::(\d{1,2}))?\s*बजे/
   );
@@ -113,22 +130,29 @@ function parseHindiDateTime(text) {
     minute = parseInt(digitTimeMatch[2] || "0");
   }
 
-  // Word time parse
+  // =============================
+  // WORD TIME
+  // =============================
   if (hour === null) {
     for (const [word, num] of Object.entries(hindiNumberMap)) {
-      if (text.includes(`${word} बजे`)) {
+      const regex = new RegExp(`${word}\\s*बजे`);
+      if (regex.test(text)) {
         hour = num;
         break;
       }
     }
   }
 
-  // Default time
+  console.log("⏰ Parsed hour:", hour);
+
+  // default fallback
   if (hour === null) {
     hour = 18;
   }
 
-  // Time context
+  // =============================
+  // TIME CONTEXT
+  // =============================
   const isDayTime =
     text.includes("दिन में") ||
     text.includes("दोपहर");
@@ -151,6 +175,11 @@ function parseHindiDateTime(text) {
   }
 
   targetDate.setHours(hour, minute, 0, 0);
+
+  // final validation
+  if (isNaN(targetDate.getTime())) {
+    return null;
+  }
 
   return {
     date: targetDate,
