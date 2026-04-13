@@ -4,12 +4,16 @@ function parseHindiDateTime(text) {
   const now = new Date();
   let targetDate = new Date(now);
 
-  const hindiNumbers = {
+  // normalize
+  text = text.trim().replace(/[।,.]/g, "");
+
+  const hindiNumberMap = {
     "एक": 1,
     "दो": 2,
     "तीन": 3,
     "चार": 4,
     "पांच": 5,
+    "पाँच": 5,
     "छह": 6,
     "सात": 7,
     "आठ": 8,
@@ -38,66 +42,72 @@ function parseHindiDateTime(text) {
     "इकतीस": 31
   };
 
-  let dateNumber = null;
+  let day = null;
+  let hour = null;
+  let minute = 0;
 
-  // numeric date
-  const numericMatch = text.match(/(\d{1,2})\s*तारीख/);
-  if (numericMatch) {
-    dateNumber = parseInt(numericMatch[1]);
-  }
+  // -------- DATE PARSE --------
+  const digitDateMatch = text.match(/(\d{1,2})\s*तारीख/);
 
-  // hindi word date
-  if (!dateNumber) {
-    for (const [word, num] of Object.entries(hindiNumbers)) {
-      if (text.includes(word + " तारीख")) {
-        dateNumber = num;
+  if (digitDateMatch) {
+    day = parseInt(digitDateMatch[1]);
+  } else {
+    for (const [word, num] of Object.entries(hindiNumberMap)) {
+      if (text.includes(`${word} तारीख`)) {
+        day = num;
         break;
       }
     }
   }
 
-  if (dateNumber) {
-    targetDate.setDate(dateNumber);
+  // -------- TIME PARSE DIGIT --------
+  const digitTimeMatch = text.match(/(\d{1,2})(?::(\d{1,2}))?\s*बजे/);
+
+  if (digitTimeMatch) {
+    hour = parseInt(digitTimeMatch[1]);
+    minute = parseInt(digitTimeMatch[2] || "0");
   }
 
-  // time
-  let hour = 18;
-  let minute = 0;
-
-  const timeMatch = text.match(/(\d{1,2})(?::(\d{1,2}))?\s*बजे/);
-
-  if (timeMatch) {
-    hour = parseInt(timeMatch[1]);
-    minute = parseInt(timeMatch[2] || "0");
+  // -------- TIME PARSE WORD --------
+  if (hour === null) {
+    for (const [word, num] of Object.entries(hindiNumberMap)) {
+      if (text.includes(`${word} बजे`)) {
+        hour = num;
+        break;
+      }
+    }
   }
 
-  // hindi word time
-  if (text.includes("एक बजे")) hour = 1;
-  if (text.includes("दो बजे")) hour = 2;
-  if (text.includes("तीन बजे")) hour = 3;
-  if (text.includes("चार बजे")) hour = 4;
-  if (text.includes("पांच बजे")) hour = 5;
-  if (text.includes("छह बजे")) hour = 6;
-  if (text.includes("सात बजे")) hour = 7;
-  if (text.includes("आठ बजे")) hour = 8;
-  if (text.includes("नौ बजे")) hour = 9;
-  if (text.includes("दस बजे")) hour = 10;
-  if (text.includes("ग्यारह बजे")) hour = 11;
-  if (text.includes("बारह बजे")) hour = 12;
+  // अगर कुछ भी parse nahi hua
+  if (day === null && hour === null) {
+    return null;
+  }
 
-  // AM / PM logic
+  // default values
+  if (day !== null) {
+    targetDate.setDate(day);
+  }
+
+  if (hour === null) {
+    hour = 18; // default शाम 6
+  }
+
+  // -------- AM PM LOGIC --------
   if (
+    text.includes("दिन में") ||
+    text.includes("दोपहर") ||
     text.includes("शाम") ||
     text.includes("रात")
   ) {
-    if (hour < 12) hour += 12;
+    if (hour < 12) {
+      hour += 12;
+    }
   }
 
-  if (
-    text.includes("दिन में") ||
-    text.includes("दोपहर")
-  ) {
-    if (hour < 12) hour += 12;
+  if (text.includes("सुबह")) {
+    if (hour === 12) {
+      hour = 0;
+    }
   }
 
   targetDate.setHours(hour, minute, 0, 0);
