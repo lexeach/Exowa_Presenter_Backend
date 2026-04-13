@@ -129,22 +129,28 @@ router.post("/answer", (req, res) => {
     const xml =
       '<?xml version="1.0" encoding="UTF-8"?>' +
       '<Response>' +
-      '<Speak>नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए।</Speak>' +
-      `<GetInput action="${processUrl}" method="POST" inputType="speech"></GetInput>` +
+      `<Gather action="${processUrl}" method="POST" inputType="speech" timeout="8">` +
+      '<Speak>नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए। उदाहरण: कल शाम 6 बजे।</Speak>' +
+      '</Gather>' +
+      '<Speak>हमें आपका जवाब नहीं मिला। धन्यवाद।</Speak>' +
       '</Response>';
 
     console.log("📤 FINAL XML:", xml);
 
-    res.set("Content-Type", "application/xml");
+    res.set("Content-Type", "text/xml");
     return res.status(200).send(xml);
 
   } catch (error) {
     console.error("❌ answer webhook error:", error);
 
-    res.set("Content-Type", "application/xml");
-    return res.status(200).send(
-      '<?xml version="1.0" encoding="UTF-8"?><Response><Speak>तकनीकी समस्या हुई है</Speak></Response>'
-    );
+    const errorXml =
+      '<?xml version="1.0" encoding="UTF-8"?>' +
+      '<Response>' +
+      '<Speak>तकनीकी समस्या हुई है</Speak>' +
+      '</Response>';
+
+    res.set("Content-Type", "text/xml");
+    return res.status(200).send(errorXml);
   }
 });
 /* -----------------------------------
