@@ -1,37 +1,31 @@
-class IntentService {
-  extractIntent(
-    text
+function detectIntent(text) {
+  const transcript = text.toLowerCase();
+
+  if (
+    transcript.includes("कल") ||
+    transcript.includes("आज") ||
+    transcript.includes("शाम") ||
+    transcript.includes("सुबह") ||
+    transcript.includes("बजे")
   ) {
-    const lower =
-      text.toLowerCase();
-
-    if (
-      lower.includes("kal") &&
-      lower.includes("6")
-    ) {
-      return {
-        intent:
-          "BOOK_DEMO",
-        date: "tomorrow",
-        time: "18:00"
-      };
-    }
-
-    if (
-      lower.includes("nahi")
-    ) {
-      return {
-        intent:
-          "NOT_INTERESTED"
-      };
-    }
-
     return {
-      intent:
-        "FOLLOW_UP_REQUIRED"
+      intent: "BOOK_SLOT",
+      slotText: text
     };
   }
+
+  if (
+    transcript.includes("बाद में") ||
+    transcript.includes("फिर")
+  ) {
+    return {
+      intent: "CALL_BACK"
+    };
+  }
+
+  return {
+    intent: "UNKNOWN"
+  };
 }
 
-module.exports =
-  new IntentService();
+module.exports = { detectIntent };
