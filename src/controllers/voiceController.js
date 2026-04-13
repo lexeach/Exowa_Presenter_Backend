@@ -1,49 +1,63 @@
 const axios = require("axios");
 const FormData = require("form-data");
 
-/* ----------------------------------------
+/* =========================================
    1. FIRST CALL ANSWER XML
------------------------------------------ */
+========================================= */
 exports.answerCall = async (req, res) => {
   try {
     console.log("📞 Vobiz answer route hit", req.body);
 
     res.set("Content-Type", "text/xml");
 
-    const xmlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+    return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
     नमस्ते। मैं Exowa से बोल रही हूँ।
     कृपया demo का समय बताइए।
+    उदाहरण: कल शाम 6 बजे।
   </Speak>
-  <Pause length="5"/>
-  <Speak language="hi-IN">
-    धन्यवाद। हम आपसे जल्दी संपर्क करेंगे।
-  </Speak>
-</Response>`;
 
-    return res.status(200).send(xmlResponse);
+  <Record
+    action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
+    method="POST"
+    maxLength="10"
+    playBeep="true"
+    timeout="8"
+  />
+</Response>
+    `);
 
   } catch (error) {
     console.error("❌ answerCall Error:", error.message);
 
     res.set("Content-Type", "text/xml");
 
-    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+    return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Speak language="hi-IN">सिस्टम त्रुटि</Speak>
-</Response>`);
+  <Speak language="hi-IN">
+    माफ कीजिए, अभी सिस्टम उपलब्ध नहीं है।
+  </Speak>
+</Response>
+    `);
   }
 };
-/* ----------------------------------------
+
+
+/* =========================================
    2. PROCESS USER SPEECH
------------------------------------------ */
+========================================= */
 exports.processSlot = async (req, res) => {
   try {
     console.log("🎤 process-slot hit", req.body);
 
-    const audioUrl =
-      req.body.RecordUrl || req.body.RecordFile;
+    const audioUrl = req.body.RecordUrl || req.body.RecordFile;
+
+    if (!audioUrl) {
+      throw new Error("Audio URL missing from Vobiz callback");
+    }
 
     console.log("🎧 Audio URL:", audioUrl);
 
@@ -52,14 +66,18 @@ exports.processSlot = async (req, res) => {
       !!process.env.SARVAM_API_KEY
     );
 
-    // STEP 1: Download audio file from Vobiz
+    /* =========================================
+       STEP 1: DOWNLOAD AUDIO FILE
+    ========================================= */
     const audioResponse = await axios.get(audioUrl, {
       responseType: "arraybuffer"
     });
 
-    console.log("✅ Audio downloaded");
+    console.log("✅ Audio downloaded from Vobiz");
 
-    // STEP 2: Create multipart form-data
+    /* =========================================
+       STEP 2: CREATE MULTIPART FORM DATA
+    ========================================= */
     const form = new FormData();
 
     form.append("file", Buffer.from(audioResponse.data), {
@@ -69,7 +87,9 @@ exports.processSlot = async (req, res) => {
 
     form.append("language_code", "hi-IN");
 
-    // STEP 3: Send audio file to Sarvam STT
+    /* =========================================
+       STEP 3: SEND TO SARVAM STT
+    ========================================= */
     const sttResponse = await axios.post(
       "https://api.sarvam.ai/speech-to-text",
       form,
@@ -82,23 +102,25 @@ exports.processSlot = async (req, res) => {
       }
     );
 
-    console.log(
-      "📝 STT Response:",
-      sttResponse.data
-    );
+    console.log("🧠 STT Raw Response:", sttResponse.data);
 
     const transcript =
-      sttResponse.data?.transcript || "";
+      sttResponse.data?.transcript ||
+      sttResponse.data?.text ||
+      "";
 
-    console.log("🧠 Transcript:", transcript);
+    console.log("📝 Transcript:", transcript);
 
-    /* ----------------------------------------
-       3. SIMPLE AI RESPONSE ENGINE
-    ----------------------------------------- */
+    /* =========================================
+       STEP 4: SIMPLE AI REPLY ENGINE
+    ========================================= */
     let replyText =
       "धन्यवाद। हमने आपका demo request नोट कर लिया है।";
 
-    if (transcript.includes("कल")) {
+    if (!transcript) {
+      replyText =
+        "माफ कीजिए, आपकी बात समझ नहीं पाई। कृपया दोबारा बताइए।";
+    } else if (transcript.includes("कल")) {
       replyText =
         "ठीक है। आपका demo कल शाम 6 बजे के लिए बुक कर दिया गया है।";
     } else if (transcript.includes("आज")) {
@@ -110,14 +132,11 @@ exports.processSlot = async (req, res) => {
     } else if (transcript.includes("शाम")) {
       replyText =
         "ठीक है। आपका demo शाम के समय बुक कर दिया गया है।";
-    } else if (!transcript) {
-      replyText =
-        "माफ कीजिए, मैं आपकी बात समझ नहीं पाई। कृपया दोबारा बताइए।";
     }
 
-    /* ----------------------------------------
-       4. RETURN XML VOICE RESPONSE
-    ----------------------------------------- */
+    /* =========================================
+       STEP 5: RETURN XML RESPONSE
+    ========================================= */
     res.set("Content-Type", "text/xml");
 
     return res.status(200).send(`
@@ -141,8 +160,7 @@ exports.processSlot = async (req, res) => {
 <?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
-    माफ कीजिए, आपकी बात समझ नहीं पाई।
-    कृपया दोबारा बताइए।
+    माफ कीजिए, तकनीकी समस्या आ गई है।
   </Speak>
 </Response>
     `);
