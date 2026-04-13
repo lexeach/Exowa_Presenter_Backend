@@ -46,6 +46,10 @@ const leadSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    demoSlot: {
+      type: Date,
+      default: ""
+    },
 
     demoTime: {
       type: String,
