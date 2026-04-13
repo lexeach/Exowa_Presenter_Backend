@@ -12,9 +12,14 @@ exports.answerCall = async (req, res) => {
 
     const xmlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Speak language="hi-IN">नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए। उदाहरण: कल शाम 6 बजे।</Speak>
-  <Pause length="8"/>
-  <Redirect method="POST">https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot</Redirect>
+  <Speak language="hi-IN">
+    नमस्ते। मैं Exowa से बोल रही हूँ।
+    कृपया demo का समय बताइए।
+  </Speak>
+  <Pause length="5"/>
+  <Speak language="hi-IN">
+    धन्यवाद। हम आपसे जल्दी संपर्क करेंगे।
+  </Speak>
 </Response>`;
 
     return res.status(200).send(xmlResponse);
@@ -26,7 +31,7 @@ exports.answerCall = async (req, res) => {
 
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Speak language="hi-IN">माफ कीजिए, अभी सिस्टम उपलब्ध नहीं है।</Speak>
+  <Speak language="hi-IN">सिस्टम त्रुटि</Speak>
 </Response>`);
   }
 };
