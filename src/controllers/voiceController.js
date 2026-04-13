@@ -1,5 +1,5 @@
 const Lead = require("../models/Lead");
-const chrono = require("chrono-node");
+const parseHindiDateTime = require("../utils/timeParser");
 const axios = require("axios");
 const FormData = require("form-data");
 
@@ -45,28 +45,6 @@ exports.answerCall = async (req, res) => {
 /* =========================================
    smart parser function
 ========================================= */
-function parseNaturalDateTime(transcript) {
-  try {
-    const parsed = chrono.parseDate(transcript, new Date(), {
-      forwardDate: true
-    });
-
-    if (!parsed) {
-      return null;
-    }
-
-    return {
-      date: parsed,
-      formatted: parsed.toLocaleString("en-IN", {
-        dateStyle: "medium",
-        timeStyle: "short"
-      })
-    };
-  } catch (error) {
-    console.error("❌ Date parse error:", error.message);
-    return null;
-  }
-}
 
 /* =========================================
    2. PROCESS USER SPEECH
@@ -74,6 +52,7 @@ function parseNaturalDateTime(transcript) {
 exports.processSlot = async (req, res) => {
   try {
     console.log("🎤 process-slot hit", req.body);
+     
 
     const audioUrl = req.body.RecordUrl || req.body.RecordFile;
 
@@ -142,8 +121,7 @@ exports.processSlot = async (req, res) => {
     /* =========================================
        STEP 4: SIMPLE AI REPLY ENGINE
     ========================================= */
- const parsedSlot = parseNaturalDateTime(transcript);
-
+ const parsedSlot = parseHindiDateTime(transcript);
 console.log("📅 Parsed Slot:", parsedSlot);
 
 let replyText =
