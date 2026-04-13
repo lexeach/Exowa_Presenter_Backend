@@ -50,7 +50,7 @@ exports.answerCall = async (req, res) => {
 /* ----------------------------------------
    2. PROCESS USER SPEECH
 ----------------------------------------- */
-const axios = require("axios");
+
 const FormData = require("form-data");
 
 exports.processSlot = async (req, res) => {
