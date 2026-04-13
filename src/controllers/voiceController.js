@@ -10,42 +10,26 @@ exports.answerCall = async (req, res) => {
 
     res.set("Content-Type", "text/xml");
 
-    return res.status(200).send(`
-<?xml version="1.0" encoding="UTF-8"?>
+    const xmlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Speak language="hi-IN">
-    नमस्ते। मैं Exowa से बोल रही हूँ।
-    कृपया demo का समय बताइए।
-    उदाहरण: कल शाम 6 बजे।
-  </Speak>
+  <Speak language="hi-IN">नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए। उदाहरण: कल शाम 6 बजे।</Speak>
+  <Pause length="8"/>
+  <Redirect method="POST">https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot</Redirect>
+</Response>`;
 
-  <Record
-  action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
-  method="POST"
-  maxLength="10"
-  playBeep="true"
-  timeout="8"
-  ></Record>
-  </Response>
-    `);
+    return res.status(200).send(xmlResponse);
 
   } catch (error) {
     console.error("❌ answerCall Error:", error.message);
 
     res.set("Content-Type", "text/xml");
 
-    return res.status(200).send(`
-<?xml version="1.0" encoding="UTF-8"?>
+    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Speak language="hi-IN">
-    माफ कीजिए, अभी सिस्टम उपलब्ध नहीं है।
-  </Speak>
-</Response>
-    `);
+  <Speak language="hi-IN">माफ कीजिए, अभी सिस्टम उपलब्ध नहीं है।</Speak>
+</Response>`);
   }
 };
-
-
 /* ----------------------------------------
    2. PROCESS USER SPEECH
 ----------------------------------------- */
