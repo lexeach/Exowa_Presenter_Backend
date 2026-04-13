@@ -1,4 +1,5 @@
 const axios = require("axios");
+const FormData = require("form-data");
 
 /* ----------------------------------------
    1. FIRST CALL ANSWER XML
@@ -12,7 +13,6 @@ exports.answerCall = async (req, res) => {
     return res.status(200).send(`
 <?xml version="1.0" encoding="UTF-8"?>
 <Response>
-
   <Speak language="hi-IN">
     नमस्ते। मैं Exowa से बोल रही हूँ।
     कृपया demo का समय बताइए।
@@ -26,7 +26,6 @@ exports.answerCall = async (req, res) => {
     playBeep="true"
     timeout="8"
   />
-
 </Response>
     `);
 
@@ -50,14 +49,12 @@ exports.answerCall = async (req, res) => {
 /* ----------------------------------------
    2. PROCESS USER SPEECH
 ----------------------------------------- */
-
-const FormData = require("form-data");
-
 exports.processSlot = async (req, res) => {
   try {
     console.log("🎤 process-slot hit", req.body);
 
-    const audioUrl = req.body.RecordUrl || req.body.RecordFile;
+    const audioUrl =
+      req.body.RecordUrl || req.body.RecordFile;
 
     console.log("🎧 Audio URL:", audioUrl);
 
@@ -66,14 +63,14 @@ exports.processSlot = async (req, res) => {
       !!process.env.SARVAM_API_KEY
     );
 
-    // STEP 1: download audio from vobiz
+    // STEP 1: Download audio file from Vobiz
     const audioResponse = await axios.get(audioUrl, {
       responseType: "arraybuffer"
     });
 
     console.log("✅ Audio downloaded");
 
-    // STEP 2: create form-data
+    // STEP 2: Create multipart form-data
     const form = new FormData();
 
     form.append("file", Buffer.from(audioResponse.data), {
@@ -83,7 +80,7 @@ exports.processSlot = async (req, res) => {
 
     form.append("language_code", "hi-IN");
 
-    // STEP 3: send to sarvam
+    // STEP 3: Send audio file to Sarvam STT
     const sttResponse = await axios.post(
       "https://api.sarvam.ai/speech-to-text",
       form,
@@ -101,71 +98,13 @@ exports.processSlot = async (req, res) => {
       sttResponse.data
     );
 
-    const userSpeech =
-      sttResponse.data.transcript || "";
-
-    let reply =
-      "धन्यवाद। आपका demo कल शाम 6 बजे के लिए schedule कर दिया गया है।";
-
-    if (!userSpeech) {
-      reply =
-        "माफ कीजिए, मैं आपकी बात समझ नहीं पाई। कृपया दोबारा बताइए।";
-    }
-
-    return res.send(`
-<Response>
-  <Speak language="hi-IN">${reply}</Speak>
-</Response>
-    `);
-  } catch (error) {
-    console.error(
-      "❌ processSlot Error:",
-      error.response?.data || error.message
-    );
-
-    return res.send(`
-<Response>
-  <Speak language="hi-IN">
-    माफ कीजिए, तकनीकी समस्या आ गई है।
-  </Speak>
-</Response>
-    `);
-  }
-};
-    console.log("🎧 Audio URL:", audioUrl);
-console.log(
-  "🔑 API KEY PRESENT:",
-  !!process.env.SARVAM_API_KEY
-);
-     
-    /* ----------------------------------------
-       3. SARVAM STT CALL
-    ----------------------------------------- */
-    const sttResponse = await axios.post(
-      "https://api.sarvam.ai/speech-to-text",
-      {
-        audio_url: audioUrl,
-        language_code: "hi-IN"
-      },
-      {
-        headers: {
-          "api-subscription-key": process.env.SARVAM_API_KEY,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    console.log("🧠 STT Raw Response:", sttResponse.data);
-
     const transcript =
-      sttResponse.data?.transcript ||
-      sttResponse.data?.text ||
-      "";
+      sttResponse.data?.transcript || "";
 
-    console.log("📝 Transcript:", transcript);
+    console.log("🧠 Transcript:", transcript);
 
     /* ----------------------------------------
-       4. SIMPLE AI RESPONSE ENGINE
+       3. SIMPLE AI RESPONSE ENGINE
     ----------------------------------------- */
     let replyText =
       "धन्यवाद। हमने आपका demo request नोट कर लिया है।";
@@ -173,25 +112,22 @@ console.log(
     if (transcript.includes("कल")) {
       replyText =
         "ठीक है। आपका demo कल शाम 6 बजे के लिए बुक कर दिया गया है।";
-    }
-
-    if (transcript.includes("आज")) {
+    } else if (transcript.includes("आज")) {
       replyText =
         "ठीक है। आपका demo आज शाम 6 बजे के लिए बुक कर दिया गया है।";
-    }
-
-    if (transcript.includes("सुबह")) {
+    } else if (transcript.includes("सुबह")) {
       replyText =
         "ठीक है। आपका demo सुबह के समय बुक कर दिया गया है।";
-    }
-
-    if (transcript.includes("शाम")) {
+    } else if (transcript.includes("शाम")) {
       replyText =
         "ठीक है। आपका demo शाम के समय बुक कर दिया गया है।";
+    } else if (!transcript) {
+      replyText =
+        "माफ कीजिए, मैं आपकी बात समझ नहीं पाई। कृपया दोबारा बताइए।";
     }
 
     /* ----------------------------------------
-       5. RETURN XML VOICE RESPONSE
+       4. RETURN XML VOICE RESPONSE
     ----------------------------------------- */
     res.set("Content-Type", "text/xml");
 
