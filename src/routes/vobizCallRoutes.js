@@ -5,10 +5,6 @@ const Lead = require("../models/Lead");
 /* -----------------------------------
    XML HELPER
 ------------------------------------ */
-/**
- * Generates a valid XML response for the telephony provider.
- * Ensures the response is wrapped in <Response> tags and includes the XML declaration.
- */
 function xmlResponse(innerXml = "") {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -34,27 +30,9 @@ function formatDateHindi(date) {
 function parseDateAndTime(speechText = "") {
   const text = speechText.toLowerCase().trim();
 
-  const weekdays = {
-    sunday: 0,
-    monday: 1,
-    tuesday: 2,
-    wednesday: 3,
-    thursday: 4,
-    friday: 5,
-    saturday: 6,
-    "रविवार": 0,
-    "सोमवार": 1,
-    "मंगलवार": 2,
-    "बुधवार": 3,
-    "गुरुवार": 4,
-    "शुक्रवार": 5,
-    "शनिवार": 6
-  };
-
   let demoDate = new Date();
   let demoTime = "6:00 PM";
 
-  /* -------- TIME -------- */
   if (
     text.includes("2") ||
     text.includes("दो") ||
@@ -77,7 +55,6 @@ function parseDateAndTime(speechText = "") {
     demoTime = "11:00 AM";
   }
 
-  /* -------- TOMORROW -------- */
   if (
     text.includes("कल") ||
     text.includes("kal") ||
@@ -86,42 +63,12 @@ function parseDateAndTime(speechText = "") {
     demoDate.setDate(demoDate.getDate() + 1);
   }
 
-  /* -------- WEEKDAY -------- */
-  for (const day in weekdays) {
-    if (text.includes(day)) {
-      const today = demoDate.getDay();
-      const targetDay = weekdays[day];
-
-      let diff = targetDay - today;
-      if (diff <= 0) diff += 7;
-
-      demoDate.setDate(demoDate.getDate() + diff);
-      break;
-    }
-  }
-
-  /* -------- DATE NUMBER -------- */
-  const dateMatch = text.match(
-    /(\d{1,2})\s*(tarikh|date|तारीख)/
-  );
-
-  if (dateMatch) {
-    const dayNumber = parseInt(dateMatch[1]);
-
-    if (dayNumber >= 1 && dayNumber <= 31) {
-      demoDate.setDate(dayNumber);
-    }
-  }
-
   return { demoDate, demoTime };
 }
 
 /* -----------------------------------
    ANSWER WEBHOOK
 ------------------------------------ */
-const express = require("express");
-const router = express.Router();
-
 const sendAnswerXml = (req, res) => {
   try {
     console.log("📞 Vobiz webhook hit:", req.method, req.originalUrl);
@@ -129,15 +76,13 @@ const sendAnswerXml = (req, res) => {
     const processUrl =
       `${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot`;
 
-    const xml =
-      '<?xml version="1.0" encoding="UTF-8"?>' +
-      '<Response>' +
-      `<Gather action="${processUrl}" method="POST" inputType="speech" timeout="8">` +
-      '<Speak language="hi-IN">' +
-      'नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए।' +
-      '</Speak>' +
-      '</Gather>' +
-      '</Response>';
+    const xml = xmlResponse(`
+      <Gather action="${processUrl}" method="POST" inputType="speech" timeout="8">
+        <Speak language="hi-IN">
+          नमस्ते। मैं Exowa से बोल रही हूँ। कृपया demo का समय बताइए।
+        </Speak>
+      </Gather>
+    `);
 
     console.log("📤 XML sent:", xml);
 
@@ -149,10 +94,7 @@ const sendAnswerXml = (req, res) => {
 
     res.set("Content-Type", "text/xml");
     return res.status(200).send(
-      '<?xml version="1.0" encoding="UTF-8"?>' +
-      '<Response>' +
-      '<Speak>तकनीकी समस्या हुई है</Speak>' +
-      '</Response>'
+      xmlResponse(`<Speak>तकनीकी समस्या हुई है</Speak>`)
     );
   }
 };
@@ -160,7 +102,6 @@ const sendAnswerXml = (req, res) => {
 router.get("/answer", sendAnswerXml);
 router.post("/answer", sendAnswerXml);
 
-module.exports = router;
 /* -----------------------------------
    PROCESS SLOT
 ------------------------------------ */
@@ -178,69 +119,60 @@ router.post("/process-slot", async (req, res) => {
 
     console.log("🎤 Parent said:", speechText);
 
-    // FIX: Ensure no-input or empty speech returns valid XML
     if (!speechText.trim()) {
       res.set("Content-Type", "text/xml");
       return res.status(200).send(
         xmlResponse(`
-    <Speak language="hi-IN">
-      कृपया समय स्पष्ट रूप से बताएं। जैसे कल शाम 6 बजे।
-    </Speak>`)
+          <Speak language="hi-IN">
+            कृपया समय स्पष्ट रूप से बताएं।
+          </Speak>
+        `)
       );
     }
 
-    const { demoDate, demoTime } = parseDateAndTime(speechText);
-    const phone = normalizePhone(req.body.To || "");
+    const { demoDate, demoTime } =
+      parseDateAndTime(speechText);
 
-    console.log("📱 Lead phone:", phone);
+    const phone =
+      normalizePhone(req.body.To || "");
 
-    const updatedLead = await Lead.findOneAndUpdate(
-      { phone },
-      {
-        status: "DEMO_BOOKED",
-        demoDate,
-        demoTime
-      },
-      { new: true }
-    );
+    const updatedLead =
+      await Lead.findOneAndUpdate(
+        { phone },
+        {
+          status: "DEMO_BOOKED",
+          demoDate,
+          demoTime
+        },
+        { new: true }
+      );
 
     if (!updatedLead) {
-      console.log("❌ Lead not found");
-
-      res.set("Content-Type", "text/xml");
       return res.status(200).send(
         xmlResponse(`
-    <Speak language="hi-IN">
-      आपका नंबर रिकॉर्ड में नहीं मिला।
-    </Speak>`)
+          <Speak>आपका नंबर रिकॉर्ड में नहीं मिला।</Speak>
+        `)
       );
     }
 
-    console.log("✅ Demo booked:", updatedLead.phone);
+    const formattedDate =
+      formatDateHindi(demoDate);
 
-    const formattedDate = formatDateHindi(demoDate);
-
-    /**
-     * FIX: Wrapped the confirmation message inside <Speak> tags.
-     * This ensures the telephony provider can parse and play the message.
-     */
-    const xml = xmlResponse(`
-  <Speak language="hi-IN">
-    धन्यवाद। आपका demo ${formattedDate} को ${demoTime} पर confirm हो गया है।
-  </Speak>`);
-
-    res.set("Content-Type", "text/xml");
-    return res.status(200).send(xml);
+    return res.status(200).send(
+      xmlResponse(`
+        <Speak language="hi-IN">
+          धन्यवाद। आपका demo ${formattedDate} को ${demoTime} पर confirm हो गया है।
+        </Speak>
+      `)
+    );
 
   } catch (error) {
     console.error("❌ process-slot error:", error);
 
-    res.set("Content-Type", "text/xml");
     return res.status(200).send(
       xmlResponse(`
-    <Speak language="hi-IN">
-      क्षमा करें। कुछ technical समस्या हुई है।
-    </Speak>`)
+        <Speak>तकनीकी समस्या हुई है।</Speak>
+      `)
     );
   }
 });
