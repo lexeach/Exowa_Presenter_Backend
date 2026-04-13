@@ -1,3 +1,4 @@
+const chrono = require("chrono-node");
 const axios = require("axios");
 const FormData = require("form-data");
 
@@ -39,6 +40,32 @@ exports.answerCall = async (req, res) => {
 </Response>`);
   }
 };
+
+/* =========================================
+   smart parser function
+========================================= */
+function parseNaturalDateTime(transcript) {
+  try {
+    const parsed = chrono.parseDate(transcript, new Date(), {
+      forwardDate: true
+    });
+
+    if (!parsed) {
+      return null;
+    }
+
+    return {
+      date: parsed,
+      formatted: parsed.toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      })
+    };
+  } catch (error) {
+    console.error("❌ Date parse error:", error.message);
+    return null;
+  }
+}
 
 /* =========================================
    2. PROCESS USER SPEECH
@@ -114,48 +141,31 @@ exports.processSlot = async (req, res) => {
     /* =========================================
        STEP 4: SIMPLE AI REPLY ENGINE
     ========================================= */
-   let replyText =
+ const parsedSlot = parseNaturalDateTime(transcript);
+
+console.log("📅 Parsed Slot:", parsedSlot);
+
+let replyText =
   "धन्यवाद। हमने आपका demo request नोट कर लिया है।";
 
 if (!transcript) {
   replyText =
     "माफ कीजिए, आपकी बात समझ नहीं पाई। कृपया दोबारा बताइए।";
-} else {
-  const text = transcript.toLowerCase();
-
-  let day = "";
-  let time = "";
-
-  // day detection
-  if (text.includes("आज")) day = "आज";
-  else if (text.includes("कल")) day = "कल";
-  else if (text.includes("सोमवार")) day = "सोमवार";
-  else if (text.includes("मंगलवार")) day = "मंगलवार";
-  else if (text.includes("बुधवार")) day = "बुधवार";
-  else if (text.includes("गुरुवार")) day = "गुरुवार";
-  else if (text.includes("शुक्रवार")) day = "शुक्रवार";
-  else if (text.includes("शनिवार")) day = "शनिवार";
-  else if (text.includes("रविवार")) day = "रविवार";
-
-  // time detection
-  if (text.includes("एक")) time = "1 बजे";
-  else if (text.includes("दो")) time = "2 बजे";
-  else if (text.includes("तीन")) time = "3 बजे";
-  else if (text.includes("चार")) time = "4 बजे";
-  else if (text.includes("पांच")) time = "5 बजे";
-  else if (text.includes("छह")) time = "6 बजे";
-  else if (text.includes("सात")) time = "7 बजे";
-  else if (text.includes("आठ")) time = "8 बजे";
-
-  if (day && time) {
-    replyText = `ठीक है। आपका demo ${day} ${time} के लिए बुक कर दिया गया है।`;
-  } else if (day) {
-    replyText = `ठीक है। आपका demo ${day} के लिए बुक कर दिया गया है।`;
-  } else if (time) {
-    replyText = `ठीक है। आपका demo ${time} के लिए बुक कर दिया गया है।`;
+} else if (parsedSlot) {
+  replyText =
+    `ठीक है। आपका demo ${parsedSlot.formatted} के लिए बुक कर दिया गया है।`;
+} 
+ await Lead.updateOne(
+  { referralPhone: req.body.To?.replace(/^91/, "") },
+  {
+    transcript,
+    demoSlot: parsedSlot?.date || null,
+    updatedAt: new Date()
   }
-}
-    console.log("🤖 Final Reply:", replyText);
+);
+
+console.log("✅ Lead updated with transcript and slot");    
+     console.log("🤖 Final Reply:", replyText);
 
     /* =========================================
        STEP 5: RETURN XML RESPONSE
