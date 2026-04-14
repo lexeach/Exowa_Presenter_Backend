@@ -1,81 +1,117 @@
 require("dotenv").config();
 require("./queue/workers/leadWorker");
-const voiceRealtimeRoutes = require("./routes/voiceRealtimeRoutes"); 
-const voiceRoutes = require("./routes/voiceRealtimeRoutes");
 
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
-// Route Imports
+/* ROUTES */
 const leadRoutes = require("./routes/LeadRoutes");
 const vobizCallRoutes = require("./routes/vobizCallRoutes");
-//const voiceRoutes = require("./routes/voiceRealtimeRoutes");
+const voiceRealtimeRoutes = require("./routes/voiceRealtimeRoutes");
 
+/* SERVICES */
 const setupBullBoard = require("./queue/bullBoard");
 const startHealthScheduler = require("./monitoring/healthScheduler");
 
-// Initialize App
+/* INIT APP */
 const app = express();
 
 /* ---------------------------
-    MIDDLEWARES
+   MIDDLEWARES
 ---------------------------- */
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE"
+    ],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization"
+    ]
   })
 );
 
-// Body parsers
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(
+  express.urlencoded({
+    extended: true
+  })
+);
 
-// Request Logger
+/* ---------------------------
+   REQUEST LOGGER
+---------------------------- */
 app.use((req, res, next) => {
-  console.log(`📩 ${req.method} ${req.originalUrl}`, req.body);
+  console.log(
+    `📩 ${req.method} ${req.originalUrl}`,
+    req.body
+  );
   next();
 });
 
 /* ---------------------------
-    HEALTH CHECKS
+   HEALTH ROUTES
 ---------------------------- */
 app.get("/", (req, res) => {
   return res.status(200).json({
     success: true,
-    message: "🚀 EXOWA backend is live"
+    message:
+      "🚀 EXOWA backend is live"
   });
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+  return res.status(200).json({
+    success: true,
+    status: "ok"
+  });
 });
 
 app.get("/test", (req, res) => {
-  return res.status(200).send("Route working");
+  return res
+    .status(200)
+    .send("Route working");
 });
 
 /* ---------------------------
-    API ROUTES
+   API ROUTES
 ---------------------------- */
 
-// Lead Routes
+/* LEAD ROUTES */
 app.use("/api/leads", leadRoutes);
 
-// Vobiz Call Routes
-app.use("/api/vobiz", vobizCallRoutes);
+/* VOBIZ ROUTES */
+app.use(
+  "/api/vobiz",
+  vobizCallRoutes
+);
 
-// Realtime & Voice Routes
-app.use("/api/voice-realtime", voiceRealtimeRoutes); // Path changed to avoid conflict
-app.use("/api/voice", voiceRoutes); // Merged new voice routes here
+/* REALTIME VOICE ROUTES */
+app.use(
+  "/api/voice",
+  voiceRealtimeRoutes
+);
 
 /* ---------------------------
-    404 HANDLER
+   BULL BOARD
+---------------------------- */
+setupBullBoard(app);
+
+/* ---------------------------
+   404 HANDLER
 ---------------------------- */
 app.use((req, res) => {
-  console.log("❌ Route not found:", req.method, req.originalUrl);
+  console.log(
+    "❌ Route not found:",
+    req.method,
+    req.originalUrl
+  );
+
   return res.status(404).json({
     success: false,
     message: "Route not found"
@@ -83,44 +119,53 @@ app.use((req, res) => {
 });
 
 /* ---------------------------
-    ERROR HANDLER
+   ERROR HANDLER
 ---------------------------- */
-app.use((err, req, res, next) => {
-  console.error("❌ Server error:", err);
-  return res.status(500).json({
-    success: false,
-    message: "Internal server error"
-  });
-});
+app.use(
+  (err, req, res, next) => {
+    console.error(
+      "❌ Server error:",
+      err
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Internal server error"
+    });
+  }
+);
 
 /* ---------------------------
-    BULL BOARD
----------------------------- */
-setupBullBoard(app);
-
-/* ---------------------------
-    MONGODB CONNECTION
+   MONGODB CONNECTION
 ---------------------------- */
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("✅ MongoDB connected successfully");
+    console.log(
+      "✅ MongoDB connected successfully"
+    );
   })
   .catch((error) => {
-    console.error("❌ MongoDB connection error:", error);
+    console.error(
+      "❌ MongoDB connection error:",
+      error
+    );
   });
 
 /* ---------------------------
-    SCHEDULER
+   SCHEDULER
 ---------------------------- */
 startHealthScheduler();
 
 /* ---------------------------
-    SERVER START
+   SERVER START
 ---------------------------- */
-// Default Render PORT 10000 ensures it stays running on cloud
-const PORT = process.env.PORT || 10000;
+const PORT =
+  process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(
+    `🚀 Server running on port ${PORT}`
+  );
 });
