@@ -1,14 +1,16 @@
 const express = require("express");
 const router = express.Router();
-const voiceController = require("../controllers/voiceController");
 
 const voiceRealtimeController = require(
   "../controllers/voiceRealtimeController"
 );
 
+// POST /api/voice/realtime
 router.post(
   "/realtime",
   voiceRealtimeController.handleRealtimeVoice
 );
+
+console.log("✅ voiceRealtimeRoutes loaded");
 
 module.exports = router;
