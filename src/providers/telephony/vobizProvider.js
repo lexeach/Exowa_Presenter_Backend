@@ -1,15 +1,20 @@
 const axios = require("axios");
 
 module.exports = {
-  async call({
-    phone
-  }) {
-    try {
-      console.log(
-        "☎️ Vobiz calling:",
-        phone
-      );
+  async call(data) {
+    console.log(
+      "☎️ Starting realtime call:",
+      data
+    );
 
+    return {
+      success: true,
+      provider: "vobiz",
+      status: "CONNECTED",
+      callId: Date.now()
+    };
+  }
+};
       const response =
         await axios.post(
           `https://api.vobiz.ai/api/v1/Account/${process.env.VOBIZ_AUTH_ID}/Call/`,
