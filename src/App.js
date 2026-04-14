@@ -1,7 +1,7 @@
 require("dotenv").config();
 require("./queue/workers/leadWorker");
 const voiceRealtimeRoutes = require("./routes/voiceRealtimeRoutes"); 
-const voiceRoutes = require("./routes/voiceRoutes");
+const voiceRoutes = require("./routes/voiceRealtimeRoutes");
 
 const express = require("express");
 const cors = require("cors");
