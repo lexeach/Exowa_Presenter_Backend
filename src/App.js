@@ -8,6 +8,8 @@ const mongoose = require("mongoose");
 // Route Imports
 const leadRoutes = require("./routes/LeadRoutes");
 const vobizCallRoutes = require("./routes/vobizCallRoutes");
+const voiceRealtimeRoutes = require("./routes/voiceRealtimeRoutes");
+const voiceRoutes = require("./routes/voiceRoutes"); // New merged route
 
 const setupBullBoard = require("./queue/bullBoard");
 const startHealthScheduler = require("./monitoring/healthScheduler");
@@ -16,7 +18,7 @@ const startHealthScheduler = require("./monitoring/healthScheduler");
 const app = express();
 
 /* ---------------------------
-   MIDDLEWARES
+    MIDDLEWARES
 ---------------------------- */
 app.use(
   cors({
@@ -26,7 +28,7 @@ app.use(
   })
 );
 
-// IMPORTANT: Body parsers before routes
+// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -37,7 +39,7 @@ app.use((req, res, next) => {
 });
 
 /* ---------------------------
-   HEALTH CHECK
+    HEALTH CHECKS
 ---------------------------- */
 app.get("/", (req, res) => {
   return res.status(200).json({
@@ -46,13 +48,16 @@ app.get("/", (req, res) => {
   });
 });
 
-// Route debug check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 app.get("/test", (req, res) => {
   return res.status(200).send("Route working");
 });
 
 /* ---------------------------
-   API ROUTES
+    API ROUTES
 ---------------------------- */
 
 // Lead Routes
@@ -61,12 +66,15 @@ app.use("/api/leads", leadRoutes);
 // Vobiz Call Routes
 app.use("/api/vobiz", vobizCallRoutes);
 
+// Realtime & Voice Routes
+app.use("/api/voice-realtime", voiceRealtimeRoutes); // Path changed to avoid conflict
+app.use("/api/voice", voiceRoutes); // Merged new voice routes here
+
 /* ---------------------------
-   404 HANDLER
+    404 HANDLER
 ---------------------------- */
 app.use((req, res) => {
   console.log("❌ Route not found:", req.method, req.originalUrl);
-
   return res.status(404).json({
     success: false,
     message: "Route not found"
@@ -74,11 +82,10 @@ app.use((req, res) => {
 });
 
 /* ---------------------------
-   ERROR HANDLER
+    ERROR HANDLER
 ---------------------------- */
 app.use((err, req, res, next) => {
   console.error("❌ Server error:", err);
-
   return res.status(500).json({
     success: false,
     message: "Internal server error"
@@ -86,12 +93,12 @@ app.use((err, req, res, next) => {
 });
 
 /* ---------------------------
-   BULL BOARD
+    BULL BOARD
 ---------------------------- */
 setupBullBoard(app);
 
 /* ---------------------------
-   MONGODB CONNECTION
+    MONGODB CONNECTION
 ---------------------------- */
 mongoose
   .connect(process.env.MONGO_URI)
@@ -103,13 +110,14 @@ mongoose
   });
 
 /* ---------------------------
-   SCHEDULER
+    SCHEDULER
 ---------------------------- */
 startHealthScheduler();
 
 /* ---------------------------
-   SERVER START
+    SERVER START
 ---------------------------- */
+// Default Render PORT 10000 ensures it stays running on cloud
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
