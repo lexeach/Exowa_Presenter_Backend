@@ -9,7 +9,6 @@ const mongoose = require("mongoose");
 const leadRoutes = require("./routes/LeadRoutes");
 const vobizCallRoutes = require("./routes/vobizCallRoutes");
 const voiceRoutes = require("./routes/voiceRealtimeRoutes");
-const voiceRoutes = require("./routes/voiceRoutes"); // New merged route
 
 const setupBullBoard = require("./queue/bullBoard");
 const startHealthScheduler = require("./monitoring/healthScheduler");
