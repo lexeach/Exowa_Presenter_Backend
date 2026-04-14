@@ -1,5 +1,7 @@
 require("dotenv").config();
 require("./queue/workers/leadWorker");
+const voiceRealtimeRoutes = require("./routes/voiceRealtimeRoutes"); 
+const voiceRoutes = require("./routes/voiceRoutes");
 
 const express = require("express");
 const cors = require("cors");
@@ -8,7 +10,7 @@ const mongoose = require("mongoose");
 // Route Imports
 const leadRoutes = require("./routes/LeadRoutes");
 const vobizCallRoutes = require("./routes/vobizCallRoutes");
-const voiceRoutes = require("./routes/voiceRealtimeRoutes");
+//const voiceRoutes = require("./routes/voiceRealtimeRoutes");
 
 const setupBullBoard = require("./queue/bullBoard");
 const startHealthScheduler = require("./monitoring/healthScheduler");
