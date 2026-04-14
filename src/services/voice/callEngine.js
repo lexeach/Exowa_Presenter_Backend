@@ -3,6 +3,7 @@ const config = require("./callConfig");
 /* TELEPHONY PROVIDERS */
 const twilioProvider = require("../../providers/telephony/twilioProvider");
 const vobiz = require("../../providers/telephony/vobizProvider");
+const exotel = require("../../providers/telephony/exotelProvider");
 
 /* VOICE PROVIDERS */
 const sarvam = require("../../providers/voice/sarvamProvider");
@@ -20,7 +21,7 @@ class CallEngine {
         return exotel;
 
       case "twilio":
-        return twilio;
+        return twilioProvider;
 
       default:
         return vobiz;
