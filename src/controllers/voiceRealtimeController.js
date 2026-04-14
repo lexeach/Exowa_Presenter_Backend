@@ -1,6 +1,6 @@
 const Lead = require("../models/Lead");
 
-exports.realtimeReply = async (req, res) => {
+exports.handleRealtimeCall = async (req, res) => {
   try {
     const { transcript, phone } = req.body;
 
