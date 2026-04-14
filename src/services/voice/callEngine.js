@@ -3,22 +3,12 @@ const config = require("./callConfig");
 /* TELEPHONY PROVIDERS */
 const twilioProvider = require("../../providers/telephony/twilioProvider");
 const vobiz = require("../../providers/telephony/vobizProvider");
-const exotel = require("../../providers/telephony/exotelProvider");
-
-/* VOICE PROVIDERS */
-const sarvam = require("../../providers/voice/sarvamProvider");
-const elevenLabs = require("../../providers/voice/elevenLabsProvider");
 
 class CallEngine {
   getTelephony() {
-    switch (
-      config.telephonyProvider
-    ) {
+    switch (config.telephonyProvider) {
       case "vobiz":
         return vobiz;
-
-      case "exotel":
-        return exotel;
 
       case "twilio":
         return twilioProvider;
@@ -28,59 +18,34 @@ class CallEngine {
     }
   }
 
-  getVoice() {
-    switch (
-      config.voiceProvider
-    ) {
-      case "elevenLabs":
-        return elevenLabs;
-
-      case "sarvam":
-      default:
-        return sarvam;
-    }
-  }
-
-  async initiateCall(
-    lead
-  ) {
+  async initiateCall(lead) {
     try {
-      console.log(
-        "☎️ CallEngine received:",
-        lead
-      );
+      console.log("☎️ Realtime CallEngine received:", lead);
 
       const phone =
         lead.referralPhone ||
         lead.phone;
-
-      const voice =
-        await this
-          .getVoice()
-          .generateVoice(
-            `Namaste ${lead.name}, main Exowa se bol raha hoon.`
-          );
 
       const response =
         await this
           .getTelephony()
           .call({
             phone,
-            message:
-              voice.audioUrl,
-            leadId:
-              lead._id
+            leadId: lead._id,
+            name: lead.name,
+            referredBy: lead.referredBy,
+            sessionType: "realtime"
           });
 
       console.log(
-        "📞 Telephony response:",
+        "📞 Realtime telephony response:",
         response
       );
 
       return response;
     } catch (error) {
       console.error(
-        "❌ CallEngine error:",
+        "❌ Realtime CallEngine error:",
         error
       );
       throw error;
@@ -88,5 +53,4 @@ class CallEngine {
   }
 }
 
-module.exports =
-  new CallEngine();
+module.exports = new CallEngine();
