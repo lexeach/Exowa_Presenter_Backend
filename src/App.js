@@ -8,7 +8,7 @@ const mongoose = require("mongoose");
 // Route Imports
 const leadRoutes = require("./routes/LeadRoutes");
 const vobizCallRoutes = require("./routes/vobizCallRoutes");
-const voiceRealtimeRoutes = require("./routes/voiceRealtimeRoutes");
+const voiceRoutes = require("./routes/voiceRealtimeRoutes");
 const voiceRoutes = require("./routes/voiceRoutes"); // New merged route
 
 const setupBullBoard = require("./queue/bullBoard");
