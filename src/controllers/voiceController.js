@@ -13,6 +13,39 @@ const {
 } = require("../services/llmService");
 
 /* =========================================
+   XML SAFE TEXT
+========================================= */
+function xmlSafe(text = "") {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/* =========================================
+   SAFE LLM WRAPPER
+========================================= */
+async function safeLLMReply(text) {
+  try {
+    const reply = await getLLMReply(text);
+
+    return (
+      reply ||
+      "जी, कृपया थोड़ा विस्तार से बताइए।"
+    );
+  } catch (error) {
+    console.error(
+      "❌ LLM Error:",
+      error.message
+    );
+
+    return "जी, Exowa बच्चों के लिए daily practice और टेस्ट platform है। क्या आप demo देखना चाहेंगे?";
+  }
+}
+
+/* =========================================
    1. FIRST CALL ANSWER XML
 ========================================= */
 exports.answerCall = async (req, res) => {
@@ -38,7 +71,10 @@ exports.answerCall = async (req, res) => {
   />
 </Response>`);
   } catch (error) {
-    console.error("❌ answerCall Error:", error.message);
+    console.error(
+      "❌ answerCall Error:",
+      error.message
+    );
 
     res.set("Content-Type", "text/xml");
 
@@ -68,21 +104,23 @@ exports.processSlot = async (req, res) => {
     console.log("📞 Call UUID:", callId);
 
     const audioUrl =
-      req.body.RecordUrl || req.body.RecordFile;
+      req.body.RecordUrl ||
+      req.body.RecordFile;
 
     if (!audioUrl) {
       throw new Error("Audio URL missing");
     }
 
-    const lead = await Lead.findOne({ phone });
+    const lead = await Lead.findOne({
+      phone
+    });
 
     if (!lead) {
       throw new Error("Lead not found");
     }
 
     let stage =
-      (lead.callSessions &&
-        lead.callSessions[callId]) ||
+      lead.callSessions?.[callId] ||
       lead.conversationStage ||
       "intro";
 
@@ -91,14 +129,19 @@ exports.processSlot = async (req, res) => {
     /* ==========================
        AUDIO FETCH
     ========================== */
-    const audioResponse = await axios.get(audioUrl, {
-      responseType: "arraybuffer",
-      headers: {
-        "X-Auth-ID": process.env.VOBIZ_AUTH_ID,
-        "X-Auth-Token":
-          process.env.VOBIZ_AUTH_TOKEN
+    const audioResponse = await axios.get(
+      audioUrl,
+      {
+        responseType: "arraybuffer",
+        headers: {
+          "X-Auth-ID":
+            process.env.VOBIZ_AUTH_ID,
+          "X-Auth-Token":
+            process.env
+              .VOBIZ_AUTH_TOKEN
+        }
       }
-    });
+    );
 
     console.log("✅ Audio downloaded");
     console.log(
@@ -130,10 +173,14 @@ exports.processSlot = async (req, res) => {
       }
     );
 
-    console.log("🧠 STT Response:", sttResponse.data);
+    console.log(
+      "🧠 STT Response:",
+      sttResponse.data
+    );
 
     const transcript =
-      sttResponse.data?.transcript || "";
+      sttResponse.data?.transcript?.trim() ||
+      "";
 
     console.log("📝 Transcript:", transcript);
 
@@ -144,15 +191,28 @@ exports.processSlot = async (req, res) => {
     let nextStage = stage;
 
     /* ==========================
-       1. CHECK FIXED STAGE FLOW
+       EMPTY INPUT HANDLE
     ========================== */
-    if (stage === "intro") {
+    if (!transcript) {
+      replyText =
+        "माफ कीजिए, आपकी आवाज़ साफ़ सुनाई नहीं दी। कृपया दोबारा बताइए।";
+
+      nextStage = stage;
+    }
+
+    /* ==========================
+       INTRO
+    ========================== */
+    else if (stage === "intro") {
       replyText =
         "बहुत बढ़िया। क्या आप demo देखना चाहेंगे?";
 
       nextStage = "interest";
     }
 
+    /* ==========================
+       INTEREST
+    ========================== */
     else if (stage === "interest") {
       const intentResult =
         await findIntent(transcript);
@@ -162,56 +222,72 @@ exports.processSlot = async (req, res) => {
         intentResult
       );
 
-      if (intentResult.matched) {
-        replyText = intentResult.response;
+      if (intentResult?.matched) {
+        replyText =
+          intentResult.response;
 
         if (
           intentResult.intent ===
           "demo_interest"
         ) {
           nextStage = "demo_slot";
-        }
-      } else {
-        if (
-          normalized.includes("हाँ") ||
-          normalized.includes("हां") ||
-          normalized.includes("जी") ||
-          normalized.includes("बिल्कुल") ||
-          normalized.includes("demo") ||
-          normalized.includes("डेमो")
-        ) {
-          replyText =
-            "कृपया demo का समय बताइए, जैसे आज शाम 6 बजे।";
-
-          nextStage = "demo_slot";
-
-          await saveIntent({
-            normalizedText:
-              intentResult.normalizedText,
-            intent: "demo_interest",
-            response: replyText
-          });
         } else {
-          console.log("🤖 Calling OpenAI");
-
-          replyText =
-            await getLLMReply(transcript);
-
           nextStage = "completed";
-
-          await saveIntent({
-            normalizedText:
-              intentResult.normalizedText,
-            intent: "auto_learned",
-            response: replyText
-          });
         }
+      }
+
+      else if (
+        normalized.includes("हाँ") ||
+        normalized.includes("हां") ||
+        normalized.includes("जी") ||
+        normalized.includes("बिल्कुल") ||
+        normalized.includes("demo") ||
+        normalized.includes("डेमो")
+      ) {
+        replyText =
+          "कृपया demo का समय बताइए, जैसे आज शाम 6 बजे।";
+
+        nextStage = "demo_slot";
+
+        await saveIntent({
+          normalizedText:
+            intentResult?.normalizedText ||
+            normalized,
+          intent: "demo_interest",
+          response: replyText
+        });
+      }
+
+      else {
+        console.log(
+          "🤖 Calling OpenAI"
+        );
+
+        replyText =
+          await safeLLMReply(
+            transcript
+          );
+
+        nextStage = "completed";
+
+        await saveIntent({
+          normalizedText:
+            intentResult?.normalizedText ||
+            normalized,
+          intent: "auto_learned",
+          response: replyText
+        });
       }
     }
 
+    /* ==========================
+       DEMO SLOT
+    ========================== */
     else if (stage === "demo_slot") {
       const parsedSlot =
-        parseHindiDateTime(transcript);
+        parseHindiDateTime(
+          transcript
+        );
 
       console.log(
         "📅 Parsed Slot:",
@@ -233,17 +309,22 @@ exports.processSlot = async (req, res) => {
         replyText =
           `बहुत बढ़िया। आपका demo ${parsedSlot.formatted} के लिए successfully book कर दिया गया है। हमारी टीम उसी समय आपसे संपर्क करेगी।`;
 
-        nextStage = "completed";
+        nextStage =
+          "completed";
       }
     }
 
+    /* ==========================
+       FALLBACK
+    ========================== */
     else {
-      console.log("🤖 Fallback OpenAI");
-
       replyText =
-        await getLLMReply(transcript);
+        await safeLLMReply(
+          transcript
+        );
 
-      nextStage = "completed";
+      nextStage =
+        "completed";
     }
 
     /* ==========================
@@ -256,16 +337,21 @@ exports.processSlot = async (req, res) => {
     lead.callSessions[callId] =
       nextStage;
 
-    lead.markModified("callSessions");
+    lead.markModified(
+      "callSessions"
+    );
 
     lead.conversationStage =
       nextStage;
 
-    lead.transcript = transcript;
+    lead.transcript =
+      transcript;
 
-    lead.lastCallUUID = callId;
+    lead.lastCallUUID =
+      callId;
 
-    lead.updatedAt = new Date();
+    lead.updatedAt =
+      new Date();
 
     await lead.save();
 
@@ -279,16 +365,23 @@ exports.processSlot = async (req, res) => {
       replyText
     );
 
-    res.set("Content-Type", "text/xml");
+    const safeReply =
+      xmlSafe(replyText);
+
+    res.set(
+      "Content-Type",
+      "text/xml"
+    );
 
     return res.status(200).send(`
 <?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
-    ${replyText}
+    ${safeReply}
   </Speak>
   ${
-    nextStage !== "completed"
+    nextStage !==
+    "completed"
       ? `
   <Record
     action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
@@ -306,7 +399,10 @@ exports.processSlot = async (req, res) => {
       error.message
     );
 
-    res.set("Content-Type", "text/xml");
+    res.set(
+      "Content-Type",
+      "text/xml"
+    );
 
     return res.status(200).send(`
 <Response>
