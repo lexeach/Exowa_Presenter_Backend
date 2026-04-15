@@ -23,7 +23,7 @@ exports.answerCall = async (req, res) => {
   <Record
     action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
     method="POST"
-    maxLength="10"
+    maxLength="12"
     playBeep="true"
     timeout="8"
   />
@@ -50,6 +50,7 @@ exports.processSlot = async (req, res) => {
     console.log("🎤 process-slot hit", req.body);
 
     const phone = req.body.To?.slice(-10);
+
     const callId =
       req.body.CallUUID ||
       req.body.RequestUUID;
@@ -64,24 +65,26 @@ exports.processSlot = async (req, res) => {
       throw new Error("Audio URL missing");
     }
 
-    const lead = await Lead.findOne({
-      phone
-    });
+    const lead = await Lead.findOne({ phone });
 
     if (!lead) {
       throw new Error("Lead not found");
     }
 
     // ==========================
-    // VERY IMPORTANT FIX
+    // FIXED STAGE MEMORY
     // ==========================
     let stage =
-      lead.callSessions?.[callId] ||
+      (lead.callSessions &&
+        lead.callSessions[callId]) ||
       lead.conversationStage ||
       "intro";
 
     console.log("📍 Current stage:", stage);
 
+    // ==========================
+    // AUDIO FETCH
+    // ==========================
     const audioResponse = await axios.get(audioUrl, {
       responseType: "arraybuffer",
       headers: {
@@ -127,7 +130,7 @@ exports.processSlot = async (req, res) => {
       transcript.toLowerCase().trim();
 
     // ==========================
-    // STAGE FLOW FIXED
+    // SMART STAGE FLOW
     // ==========================
     if (stage === "intro") {
       replyText =
@@ -142,6 +145,7 @@ exports.processSlot = async (req, res) => {
         normalized.includes("हां") ||
         normalized.includes("जी") ||
         normalized.includes("बिल्कुल") ||
+        normalized.includes("हाँ बिल्कुल") ||
         normalized.includes("demo") ||
         normalized.includes("डेमो")
       ) {
@@ -161,34 +165,22 @@ exports.processSlot = async (req, res) => {
       const parsedSlot =
         parseHindiDateTime(transcript);
 
-      console.log(
-        "📅 Parsed Slot:",
-        parsedSlot
-      );
+      console.log("📅 Parsed Slot:", parsedSlot);
 
       if (!parsedSlot) {
         replyText =
-          "कृपया समय बताइए, जैसे आज शाम 6 बजे।";
+          "कृपया समय दोबारा बताइए, जैसे 21 तारीख दोपहर 3 बजे।";
 
         nextStage = "demo_slot";
       } else {
-        replyText =
-          `ठीक है। आपका demo ${parsedSlot.formatted} के लिए बुक कर दिया गया है।`;
-
         lead.demoDate =
-          parsedSlot.date.toLocaleDateString(
-            "en-IN"
-          );
+          parsedSlot.date;
 
         lead.demoTime =
-          parsedSlot.date.toLocaleTimeString(
-            "en-IN",
-            {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true
-            }
-          );
+          parsedSlot.formatted;
+
+        replyText =
+          `बहुत बढ़िया। आपका demo ${parsedSlot.formatted} के लिए successfully book कर दिया गया है। हमारी टीम उसी समय आपसे संपर्क करेगी।`;
 
         nextStage = "completed";
       }
@@ -202,13 +194,17 @@ exports.processSlot = async (req, res) => {
     }
 
     // ==========================
-    // SESSION MEMORY FIX
+    // IMPORTANT MONGOOSE FIX
     // ==========================
     if (!lead.callSessions) {
       lead.callSessions = {};
     }
 
     lead.callSessions[callId] = nextStage;
+
+    // VERY IMPORTANT
+    lead.markModified("callSessions");
+
     lead.conversationStage = nextStage;
     lead.transcript = transcript;
     lead.updatedAt = new Date();
@@ -233,7 +229,7 @@ exports.processSlot = async (req, res) => {
   <Record
     action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
     method="POST"
-    maxLength="10"
+    maxLength="12"
     playBeep="true"
     timeout="8"
   />`
