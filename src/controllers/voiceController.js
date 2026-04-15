@@ -43,17 +43,19 @@ exports.answerCall = async (req, res) => {
 };
 
 /* =========================================
-   smart parser function
-========================================= */
-
-/* =========================================
    2. PROCESS USER SPEECH
 ========================================= */
 exports.processSlot = async (req, res) => {
   try {
     console.log("🎤 process-slot hit", req.body);
 
-    const phone = req.body.To?.replace(/^91/, "");
+    // ========================
+    // CLEAN PHONE
+    // ========================
+    const phone = req.body.To?.slice(-10);
+
+    console.log("📞 Searching lead for phone:", phone);
+
     const audioUrl =
       req.body.RecordUrl || req.body.RecordFile;
 
@@ -61,12 +63,25 @@ exports.processSlot = async (req, res) => {
       throw new Error("Audio URL missing");
     }
 
+    // ========================
+    // FIXED LEAD LOOKUP
+    // ========================
     const lead = await Lead.findOne({
-      referralPhone: phone
+      phone: phone
     });
 
     if (!lead) {
-      throw new Error("Lead not found");
+      console.error("❌ Lead not found for:", phone);
+
+      res.set("Content-Type", "text/xml");
+
+      return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak language="hi-IN">
+    माफ कीजिए, आपकी जानकारी नहीं मिल पाई।
+  </Speak>
+</Response>`);
     }
 
     const stage =
@@ -74,6 +89,9 @@ exports.processSlot = async (req, res) => {
 
     console.log("📍 Current stage:", stage);
 
+    // ========================
+    // DOWNLOAD AUDIO
+    // ========================
     const audioResponse = await axios.get(audioUrl, {
       responseType: "arraybuffer",
       headers: {
@@ -83,6 +101,15 @@ exports.processSlot = async (req, res) => {
       }
     });
 
+    console.log("✅ Audio downloaded");
+    console.log(
+      "📦 Audio size:",
+      audioResponse.data.length
+    );
+
+    // ========================
+    // STT
+    // ========================
     const form = new FormData();
 
     form.append(
@@ -107,6 +134,8 @@ exports.processSlot = async (req, res) => {
       }
     );
 
+    console.log("🧠 STT Response:", sttResponse.data);
+
     const transcript =
       sttResponse.data?.transcript || "";
 
@@ -118,7 +147,6 @@ exports.processSlot = async (req, res) => {
     // ========================
     // STAGE FLOW
     // ========================
-
     if (stage === "intro") {
       replyText =
         "धन्यवाद जी। Exowa एक smart practice platform है जहाँ बच्चा daily टेस्ट practice कर सकता है। क्या आप demo देखना चाहेंगे?";
@@ -132,9 +160,10 @@ exports.processSlot = async (req, res) => {
 
       if (
         normalized.includes("हाँ") ||
+        normalized.includes("हां") ||
+        normalized.includes("haan") ||
         normalized.includes("ha") ||
-        normalized.includes("demo") ||
-        normalized.includes("haan")
+        normalized.includes("demo")
       ) {
         replyText =
           "बहुत बढ़िया। कृपया demo का समय बताइए, जैसे आज शाम 6 बजे।";
@@ -143,6 +172,8 @@ exports.processSlot = async (req, res) => {
       } else {
         replyText =
           "कोई बात नहीं। अगर आप चाहें तो बाद में demo schedule कर सकते हैं।";
+
+        nextStage = "completed";
       }
     }
 
@@ -184,16 +215,25 @@ exports.processSlot = async (req, res) => {
     else {
       replyText =
         "धन्यवाद। हमारी team आपसे संपर्क करेगी।";
+
+      nextStage = "completed";
     }
 
+    // ========================
+    // SAVE LEAD
+    // ========================
     lead.transcript = transcript;
     lead.conversationStage = nextStage;
     lead.updatedAt = new Date();
 
     await lead.save();
 
+    console.log("✅ Lead updated");
     console.log("🤖 Final Reply:", replyText);
 
+    // ========================
+    // XML RESPONSE
+    // ========================
     res.set("Content-Type", "text/xml");
 
     return res.status(200).send(`
@@ -218,7 +258,7 @@ exports.processSlot = async (req, res) => {
   } catch (error) {
     console.error(
       "❌ processSlot Error:",
-      error.message
+      error.response?.data || error.message
     );
 
     res.set("Content-Type", "text/xml");
