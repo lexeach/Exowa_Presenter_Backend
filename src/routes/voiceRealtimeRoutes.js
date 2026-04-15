@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
 
-const voiceRealtimeController = require(
-  "../controllers/voiceRealtimeController"
-);
+const {
+  realtimeVoiceReply
+} = require("../controllers/voiceRealtimeController");
 
 // POST /api/voice/realtime
 router.post(
   "/realtime",
-  voiceRealtimeController.realtimeVoiceReply
+  realtimeVoiceReply
 );
 
 console.log("✅ voiceRealtimeRoutes loaded");
