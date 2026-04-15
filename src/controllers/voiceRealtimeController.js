@@ -1,36 +1,21 @@
 const Lead = require("../models/Lead");
+const { getAIReply } = require("../services/aiReplyService");
 
-async function realtimeVoiceReply(req, res) {
+exports.realtimeVoiceReply = async (req, res) => {
   try {
-    console.log(
-      "🎤 Realtime voice request:",
-      req.body
-    );
+    const phone = req.body.To?.slice(-10);
 
-    const phone =
-      req.body.To?.replace("91", "") || "";
+    const lead = await Lead.findOne({
+      referralPhone: phone
+    });
 
-    let lead = null;
+    const transcript = req.body.transcript || "";
 
-    if (phone) {
-      lead = await Lead.findOne({
-        $or: [
-          { phone },
-          { referralPhone: phone }
-        ]
-      });
-    }
-
-    const name = lead?.name || "जी";
-
-    const reply = `नमस्ते ${name},
-मैं Exowa से मीरा बोल रही हूँ।
-क्या अभी 2 मिनट बात करने का सही समय है?`;
-
-    console.log(
-      "🤖 Realtime voice reply:",
-      reply
-    );
+    const reply = await getAIReply({
+      transcript,
+      lead,
+      stage: "intro"
+    });
 
     const xml = `
 <Response>
@@ -45,30 +30,12 @@ async function realtimeVoiceReply(req, res) {
       playBeep="true"
    />
 </Response>
-    `;
+`;
 
     res.set("Content-Type", "text/xml");
-    return res.status(200).send(xml);
+    return res.send(xml);
   } catch (error) {
-    console.error(
-      "❌ realtimeVoiceReply error:",
-      error
-    );
-
-    const errorXml = `
-<Response>
-   <Speak>
-      तकनीकी समस्या हुई है।
-   </Speak>
-   <Hangup/>
-</Response>
-    `;
-
-    res.set("Content-Type", "text/xml");
-    return res.status(500).send(errorXml);
+    console.error(error);
+    return res.status(500).send("error");
   }
-}
-
-module.exports = {
-  realtimeVoiceReply
 };
