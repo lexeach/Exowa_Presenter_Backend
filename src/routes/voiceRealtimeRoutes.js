@@ -3,7 +3,14 @@ const router = express.Router();
 
 const {
   realtimeVoiceReply
-} = require("../controllers/voiceRealtimeController");
+} = require(
+  "../controllers/voiceRealtimeController"
+);
+
+console.log(
+  "DEBUG realtimeVoiceReply:",
+  realtimeVoiceReply
+);
 
 // POST /api/voice/realtime
 router.post(
@@ -11,6 +18,8 @@ router.post(
   realtimeVoiceReply
 );
 
-console.log("✅ voiceRealtimeRoutes loaded");
+console.log(
+  "✅ voiceRealtimeRoutes loaded"
+);
 
 module.exports = router;
