@@ -1,14 +1,27 @@
-async function getLLMReply({ transcript, stage, lead }) {
-  if (!transcript) {
-    return `नमस्ते ${lead?.name || "जी"},
-मैं Exowa से मीरा बोल रही हूँ।
-क्या अभी 2 मिनट बात करने का सही समय है?`;
-  }
+const OpenAI = require("openai");
 
-  return `धन्यवाद।
-क्या मैं आपके बच्चे की class जान सकती हूँ?`;
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+async function getLLMReply(transcript) {
+  const completion =
+    await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Exowa Hindi sales AI caller."
+        },
+        {
+          role: "user",
+          content: transcript
+        }
+      ]
+    });
+
+  return completion.choices[0].message.content;
 }
 
-module.exports = {
-  getLLMReply
-};
+module.exports = { getLLMReply };
