@@ -3,6 +3,15 @@ const parseHindiDateTime = require("../utils/timeParser");
 const axios = require("axios");
 const FormData = require("form-data");
 
+const {
+  findIntent,
+  saveIntent
+} = require("../services/intentService");
+
+const {
+  getLLMReply
+} = require("../services/llmService");
+
 /* =========================================
    1. FIRST CALL ANSWER XML
 ========================================= */
@@ -71,9 +80,6 @@ exports.processSlot = async (req, res) => {
       throw new Error("Lead not found");
     }
 
-    // ==========================
-    // FIXED STAGE MEMORY
-    // ==========================
     let stage =
       (lead.callSessions &&
         lead.callSessions[callId]) ||
@@ -82,9 +88,9 @@ exports.processSlot = async (req, res) => {
 
     console.log("📍 Current stage:", stage);
 
-    // ==========================
-    // AUDIO FETCH
-    // ==========================
+    /* ==========================
+       AUDIO FETCH
+    ========================== */
     const audioResponse = await axios.get(audioUrl, {
       responseType: "arraybuffer",
       headers: {
@@ -93,6 +99,12 @@ exports.processSlot = async (req, res) => {
           process.env.VOBIZ_AUTH_TOKEN
       }
     });
+
+    console.log("✅ Audio downloaded");
+    console.log(
+      "📦 Audio size:",
+      audioResponse.data.length
+    );
 
     const form = new FormData();
 
@@ -118,20 +130,22 @@ exports.processSlot = async (req, res) => {
       }
     );
 
+    console.log("🧠 STT Response:", sttResponse.data);
+
     const transcript =
       sttResponse.data?.transcript || "";
 
     console.log("📝 Transcript:", transcript);
 
-    let replyText = "";
-    let nextStage = stage;
-
     const normalized =
       transcript.toLowerCase().trim();
 
-    // ==========================
-    // SMART STAGE FLOW
-    // ==========================
+    let replyText = "";
+    let nextStage = stage;
+
+    /* ==========================
+       1. CHECK FIXED STAGE FLOW
+    ========================== */
     if (stage === "intro") {
       replyText =
         "बहुत बढ़िया। क्या आप demo देखना चाहेंगे?";
@@ -140,24 +154,58 @@ exports.processSlot = async (req, res) => {
     }
 
     else if (stage === "interest") {
-      if (
-        normalized.includes("हाँ") ||
-        normalized.includes("हां") ||
-        normalized.includes("जी") ||
-        normalized.includes("बिल्कुल") ||
-        normalized.includes("हाँ बिल्कुल") ||
-        normalized.includes("demo") ||
-        normalized.includes("डेमो")
-      ) {
-        replyText =
-          "कृपया demo का समय बताइए, जैसे आज शाम 6 बजे।";
+      const intentResult =
+        await findIntent(transcript);
 
-        nextStage = "demo_slot";
+      console.log(
+        "🧠 Intent Result:",
+        intentResult
+      );
+
+      if (intentResult.matched) {
+        replyText = intentResult.response;
+
+        if (
+          intentResult.intent ===
+          "demo_interest"
+        ) {
+          nextStage = "demo_slot";
+        }
       } else {
-        replyText =
-          "ठीक है। आप चाहें तो बाद में demo schedule कर सकते हैं।";
+        if (
+          normalized.includes("हाँ") ||
+          normalized.includes("हां") ||
+          normalized.includes("जी") ||
+          normalized.includes("बिल्कुल") ||
+          normalized.includes("demo") ||
+          normalized.includes("डेमो")
+        ) {
+          replyText =
+            "कृपया demo का समय बताइए, जैसे आज शाम 6 बजे।";
 
-        nextStage = "completed";
+          nextStage = "demo_slot";
+
+          await saveIntent({
+            normalizedText:
+              intentResult.normalizedText,
+            intent: "demo_interest",
+            response: replyText
+          });
+        } else {
+          console.log("🤖 Calling OpenAI");
+
+          replyText =
+            await getLLMReply(transcript);
+
+          nextStage = "completed";
+
+          await saveIntent({
+            normalizedText:
+              intentResult.normalizedText,
+            intent: "auto_learned",
+            response: replyText
+          });
+        }
       }
     }
 
@@ -165,7 +213,10 @@ exports.processSlot = async (req, res) => {
       const parsedSlot =
         parseHindiDateTime(transcript);
 
-      console.log("📅 Parsed Slot:", parsedSlot);
+      console.log(
+        "📅 Parsed Slot:",
+        parsedSlot
+      );
 
       if (!parsedSlot) {
         replyText =
@@ -187,33 +238,46 @@ exports.processSlot = async (req, res) => {
     }
 
     else {
+      console.log("🤖 Fallback OpenAI");
+
       replyText =
-        "धन्यवाद। हमारी टीम आपसे संपर्क करेगी।";
+        await getLLMReply(transcript);
 
       nextStage = "completed";
     }
 
-    // ==========================
-    // IMPORTANT MONGOOSE FIX
-    // ==========================
+    /* ==========================
+       SAVE MEMORY
+    ========================== */
     if (!lead.callSessions) {
       lead.callSessions = {};
     }
 
-    lead.callSessions[callId] = nextStage;
+    lead.callSessions[callId] =
+      nextStage;
 
-    // VERY IMPORTANT
     lead.markModified("callSessions");
 
-    lead.conversationStage = nextStage;
+    lead.conversationStage =
+      nextStage;
+
     lead.transcript = transcript;
+
+    lead.lastCallUUID = callId;
+
     lead.updatedAt = new Date();
 
     await lead.save();
 
     console.log("✅ Lead updated");
-    console.log("➡️ Next stage:", nextStage);
-    console.log("🤖 Final Reply:", replyText);
+    console.log(
+      "➡️ Next stage:",
+      nextStage
+    );
+    console.log(
+      "🤖 Final Reply:",
+      replyText
+    );
 
     res.set("Content-Type", "text/xml");
 
