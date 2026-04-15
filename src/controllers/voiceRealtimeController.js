@@ -7,8 +7,8 @@ async function realtimeVoiceReply(req, res) {
       req.body
     );
 
-    const { phone, transcript } =
-      req.body;
+    const phone =
+      req.body.To?.replace("91", "") || "";
 
     let lead = null;
 
@@ -21,76 +21,51 @@ async function realtimeVoiceReply(req, res) {
       });
     }
 
-    const name =
-      lead?.name || "जी";
+    const name = lead?.name || "जी";
 
-    const referredBy =
-      lead?.referredBy;
-
-    let reply = "";
-
-    // FIRST INTRO
-    if (
-      !transcript ||
-      transcript.trim() === ""
-    ) {
-      if (referredBy) {
-        reply = `नमस्ते ${name},
-मैं Exowa से मीरा बोल रही हूँ।
-आपका नंबर हमें ${referredBy} जी से मिला है।
-क्या अभी 2 मिनट बात करने का सही समय है?`;
-      } else {
-        reply = `नमस्ते ${name},
+    const reply = `नमस्ते ${name},
 मैं Exowa से मीरा बोल रही हूँ।
 क्या अभी 2 मिनट बात करने का सही समय है?`;
-      }
-    }
-
-    // POSITIVE RESPONSE
-    else if (
-      transcript.includes("हाँ") ||
-      transcript.includes("haan") ||
-      transcript.includes("yes")
-    ) {
-      reply = `बहुत धन्यवाद।
-क्या मैं आपके बच्चे की class जान सकती हूँ?`;
-    }
-
-    // BUSY RESPONSE
-    else if (
-      transcript.includes("बाद में") ||
-      transcript.includes("busy")
-    ) {
-      reply = `कोई बात नहीं।
-कृपया अपना सुविधाजनक समय बताइए।`;
-    }
-
-    // DEFAULT
-    else {
-      reply = `धन्यवाद।
-क्या मैं आपको Exowa के बारे में जानकारी दूँ?`;
-    }
 
     console.log(
       "🤖 Realtime voice reply:",
       reply
     );
 
-    return res.status(200).json({
-      success: true,
-      reply
-    });
+    const xml = `
+<Response>
+   <Speak language="hi-IN">
+      ${reply}
+   </Speak>
+
+   <Record
+      action="${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot"
+      method="POST"
+      maxLength="8"
+      playBeep="true"
+   />
+</Response>
+    `;
+
+    res.set("Content-Type", "text/xml");
+    return res.status(200).send(xml);
   } catch (error) {
     console.error(
       "❌ realtimeVoiceReply error:",
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        "Voice reply failed"
-    });
+    const errorXml = `
+<Response>
+   <Speak>
+      तकनीकी समस्या हुई है।
+   </Speak>
+   <Hangup/>
+</Response>
+    `;
+
+    res.set("Content-Type", "text/xml");
+    return res.status(500).send(errorXml);
   }
 }
 
