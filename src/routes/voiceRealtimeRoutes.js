@@ -8,7 +8,7 @@ const voiceRealtimeController = require(
 // POST /api/voice/realtime
 router.post(
   "/realtime",
-  voiceRealtimeController.handleRealtimeVoice
+  voiceRealtimeController.realtimeVoiceReply
 );
 
 console.log("✅ voiceRealtimeRoutes loaded");
