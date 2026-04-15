@@ -26,7 +26,7 @@ module.exports = {
               process.env
                 .VOBIZ_SOURCE_NUMBER,
             to: `+91${phone}`,
-            answer_url: `${process.env.BACKEND_BASE_URL}/api/vobiz/answer`,
+            answer_url: `${process.env.BACKEND_BASE_URL}/api/voice/realtime`,
             answer_method: "POST"
           },
           {
