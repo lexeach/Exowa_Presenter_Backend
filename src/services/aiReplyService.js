@@ -1,44 +1,62 @@
-const { findKnownIntent } = require("./intentService");
-const { getLLMReply } = require("./llmService");
-const { saveConversation } = require("./learningService");
+const {
+  findIntent,
+  saveIntent
+} = require("./intentService");
 
-async function getAIReply(payload) {
-  const { transcript, lead, stage } = payload;
+const {
+  getLLMReply
+} = require("./llmService");
 
-  const knownIntent = await findKnownIntent(
-    transcript || ""
-  );
+async function getAIReply({
+  transcript = "",
+  lead = null,
+  stage = "intro"
+}) {
+  try {
+    console.log(
+      "🧠 AI Reply Input:",
+      transcript
+    );
 
-  let reply = "";
-  let source = "";
-  let confidence = 0;
-  let intent = "unknown";
+    const intentResult =
+      await findIntent(transcript);
 
-  if (knownIntent.matched) {
-    reply = knownIntent.reply;
-    source = "intent_bank";
-    confidence = knownIntent.confidence;
-    intent = knownIntent.intent;
-  } else {
-    reply = await getLLMReply(payload);
-    source = "llm";
-    confidence = 0.6;
+    console.log(
+      "🧠 Intent Result:",
+      intentResult
+    );
+
+    if (intentResult.matched) {
+      console.log(
+        "✅ Intent matched from bank"
+      );
+
+      return intentResult.response;
+    }
+
+    console.log("🤖 Calling OpenAI");
+
+    const reply =
+      await getLLMReply(transcript);
+
+    await saveIntent({
+      normalizedText:
+        intentResult.normalizedText,
+      intent: "auto_learned",
+      response: reply
+    });
+
+    console.log("✅ New intent saved");
+
+    return reply;
+  } catch (error) {
+    console.error(
+      "❌ getAIReply Error:",
+      error.message
+    );
+
+    return "माफ कीजिए, कृपया दोबारा बताइए।";
   }
-
-  await saveConversation({
-    leadId: lead?._id,
-    phone: lead?.phone,
-    transcript,
-    aiReply: reply,
-    predictedIntent: intent,
-    confidence,
-    stage,
-    source
-  });
-
-  return reply;
 }
 
-module.exports = {
-  getAIReply
-};
+module.exports = { getAIReply };
