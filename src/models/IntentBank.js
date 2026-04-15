@@ -2,23 +2,35 @@ const mongoose = require("mongoose");
 
 const intentBankSchema = new mongoose.Schema(
   {
-    intentKey: {
+    normalizedText: {
       type: String,
+      required: true,
       unique: true
     },
-    trainingPhrases: [String],
-    replyTemplate: String,
-    stage: String,
-    confidenceThreshold: {
-      type: Number,
-      default: 0.85
+
+    intent: {
+      type: String,
+      default: ""
     },
-    isActive: {
-      type: Boolean,
-      default: false
+
+    response: {
+      type: String,
+      default: ""
+    },
+
+    usageCount: {
+      type: Number,
+      default: 1
+    },
+
+    source: {
+      type: String,
+      default: "llm"
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true
+  }
 );
 
 module.exports = mongoose.model(
