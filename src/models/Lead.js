@@ -22,9 +22,10 @@ const leadSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+
     preferredCallTime: {
-     type: String,
-     default: ""
+      type: String,
+      default: ""
     },
 
     source: {
@@ -42,13 +43,40 @@ const leadSchema = new mongoose.Schema(
       default: "NOT_STARTED"
     },
 
+    // =========================
+    // AI CONVERSATION FIELDS
+    // =========================
+    conversationStage: {
+      type: String,
+      default: "intro"
+    },
+
+    transcript: {
+      type: String,
+      default: ""
+    },
+
+    lastCallUUID: {
+      type: String,
+      default: ""
+    },
+
+    callSessions: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
+
+    // =========================
+    // DEMO FIELDS
+    // =========================
     demoDate: {
       type: String,
       default: ""
     },
+
     demoSlot: {
       type: Date,
-      default: ""
+      default: null
     },
 
     demoTime: {
@@ -56,6 +84,9 @@ const leadSchema = new mongoose.Schema(
       default: ""
     },
 
+    // =========================
+    // RETRY FIELDS
+    // =========================
     retryCount: {
       type: Number,
       default: 0
