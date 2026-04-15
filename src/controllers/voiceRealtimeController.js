@@ -1,53 +1,162 @@
-const Lead = require("../models/Lead");
+const express = require("express");
+const router = express.Router();
 
-exports.realtimeVoiceReply = async (req, res) => {
+const axios = require("axios");
+const Lead = require("../models/Lead");
+const { getAIReply } = require("../services/ai/voiceConversationService");
+
+/* -----------------------------------
+   1. FIRST CALL ANSWER ROUTE
+----------------------------------- */
+router.post("/answer", async (req, res) => {
   try {
-    console.log("🎤 Realtime voice request:", req.body);
+    console.log("📞 Vobiz answer route hit", req.body);
 
     const phone =
-      req.body.To?.replace(/^91/, "") ||
-      req.body.phone;
+      req.body.To?.replace("91", "") || "";
 
-    let lead = null;
-
-    if (phone) {
-      lead = await Lead.findOne({
-        phone
-      });
-    }
+    const lead = await Lead.findOne({
+      $or: [
+        { phone },
+        { referralPhone: phone }
+      ]
+    });
 
     const name = lead?.name || "जी";
     const referredBy =
       lead?.referredBy || "आपके परिचित";
 
-    const reply = `नमस्ते ${name},
-मैं Exowa से मीरा बोल रही हूँ।
-आपका नंबर हमें ${referredBy} जी से मिला है।
-उन्होंने सुझाव दिया कि मैं आपसे बात करके Exowa के बारे में बताऊँ।
-क्या अभी 2 मिनट बात करने का सही समय है?`;
+    const introText = `
+      नमस्ते ${name},
+      मैं Exowa से मीरा बोल रही हूँ।
+      आपका नंबर हमें ${referredBy} जी से मिला है।
+      क्या अभी 2 मिनट बात करने का सही समय है?
+    `;
 
-    console.log("🤖 Realtime voice reply:", reply);
-
-    res.set("Content-Type", "text/xml");
-
-    return res.status(200).send(`
+    const xml = `
 <Response>
   <Speak language="hi-IN">
-    ${reply}
+    ${introText}
   </Speak>
+
+  <Record
+    action="${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot"
+    method="POST"
+    maxLength="8"
+    playBeep="true"
+  />
 </Response>
-`);
+    `;
+
+    res.type("text/xml");
+    return res.send(xml);
   } catch (error) {
-    console.error("❌ realtime error:", error);
+    console.error("❌ answer route error:", error);
 
-    res.set("Content-Type", "text/xml");
-
-    return res.status(200).send(`
+    return res.send(`
 <Response>
-  <Speak language="hi-IN">
-    माफ कीजिए, तकनीकी समस्या आ गई है।
-  </Speak>
+   <Speak>क्षमा करें, कुछ तकनीकी समस्या हुई है।</Speak>
+   <Hangup/>
 </Response>
-`);
+    `);
   }
-};
+});
+
+/* -----------------------------------
+   2. CONTINUOUS CONVERSATION LOOP
+----------------------------------- */
+router.post("/process-slot", async (req, res) => {
+  try {
+    console.log("🎤 process-slot hit", req.body);
+
+    const audioUrl =
+      req.body.RecordUrl ||
+      req.body.RecordFile;
+
+    console.log("🎧 Audio URL:", audioUrl);
+
+    let transcript = "";
+
+    if (audioUrl) {
+      const audioResponse =
+        await axios.get(audioUrl, {
+          responseType: "arraybuffer",
+          auth: {
+            username:
+              process.env.VOBIZ_AUTH_ID,
+            password:
+              process.env.VOBIZ_AUTH_TOKEN
+          }
+        });
+
+      console.log(
+        "✅ Audio downloaded from Vobiz"
+      );
+
+      // STT logic yahan call karo
+      // Example:
+      transcript =
+        "हाँ अभी बात कर सकते हैं";
+
+      console.log(
+        "📝 Transcript:",
+        transcript
+      );
+    }
+
+    const aiReply =
+      await getAIReply(transcript);
+
+    console.log(
+      "🤖 AI Reply:",
+      aiReply
+    );
+
+    const shouldEnd =
+      aiReply.includes("demo booked") ||
+      aiReply.includes("धन्यवाद");
+
+    const xml = shouldEnd
+      ? `
+<Response>
+   <Speak language="hi-IN">
+      ${aiReply}
+   </Speak>
+   <Hangup/>
+</Response>
+      `
+      : `
+<Response>
+   <Speak language="hi-IN">
+      ${aiReply}
+   </Speak>
+
+   <Record
+      action="${process.env.BACKEND_BASE_URL}/api/vobiz/process-slot"
+      method="POST"
+      maxLength="8"
+      playBeep="true"
+   />
+</Response>
+      `;
+
+    res.type("text/xml");
+    return res.send(xml);
+  } catch (error) {
+    console.error(
+      "❌ process-slot error:",
+      error
+    );
+
+    return res.send(`
+<Response>
+   <Speak>
+      तकनीकी समस्या हुई है।
+   </Speak>
+   <Hangup/>
+</Response>
+    `);
+  }
+});
+
+module.exports = router;
