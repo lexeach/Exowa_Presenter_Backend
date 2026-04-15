@@ -1,31 +1,54 @@
 const IntentBank = require("../models/IntentBank");
 
-async function findKnownIntent(text) {
-  const normalized = text.toLowerCase().trim();
+function normalize(text = "") {
+  return text
+    .toLowerCase()
+    .replace(/[^\u0900-\u097Fa-zA-Z0-9 ]/g, "")
+    .trim();
+}
 
-  const intents = await IntentBank.find({
-    isActive: true
+async function findIntent(text) {
+  const normalizedText = normalize(text);
+
+  const match = await IntentBank.findOne({
+    normalizedText
   });
 
-  for (const intent of intents) {
-    for (const phrase of intent.trainingPhrases) {
-      if (normalized.includes(phrase.toLowerCase())) {
-        return {
-          matched: true,
-          intent: intent.intentKey,
-          reply: intent.replyTemplate,
-          confidence: 0.95
-        };
-      }
-    }
+  if (match) {
+    match.usageCount += 1;
+    await match.save();
+
+    return {
+      matched: true,
+      response: match.response,
+      intent: match.intent
+    };
   }
 
   return {
     matched: false,
-    confidence: 0
+    normalizedText
   };
 }
 
+async function saveIntent({
+  normalizedText,
+  intent,
+  response
+}) {
+  await IntentBank.findOneAndUpdate(
+    { normalizedText },
+    {
+      normalizedText,
+      intent,
+      response,
+      source: "llm"
+    },
+    { upsert: true }
+  );
+}
+
 module.exports = {
-  findKnownIntent
+  findIntent,
+  saveIntent
 };
