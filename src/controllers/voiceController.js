@@ -52,52 +52,50 @@ exports.answerCall = async (req, res) => {
 exports.processSlot = async (req, res) => {
   try {
     console.log("🎤 process-slot hit", req.body);
-     
 
-    const audioUrl = req.body.RecordUrl || req.body.RecordFile;
+    const phone = req.body.To?.replace(/^91/, "");
+    const audioUrl =
+      req.body.RecordUrl || req.body.RecordFile;
 
     if (!audioUrl) {
-      throw new Error("Audio URL missing from Vobiz callback");
+      throw new Error("Audio URL missing");
     }
 
-    console.log("🎧 Audio URL:", audioUrl);
-
-    console.log("🔑 VOBIZ AUTH PRESENT:", {
-      authId: !!process.env.VOBIZ_AUTH_ID,
-      authToken: !!process.env.VOBIZ_AUTH_TOKEN
+    const lead = await Lead.findOne({
+      referralPhone: phone
     });
 
-    console.log("🔑 SARVAM KEY PRESENT:", !!process.env.SARVAM_API_KEY);
+    if (!lead) {
+      throw new Error("Lead not found");
+    }
 
-    /* =========================================
-       STEP 1: DOWNLOAD AUDIO FROM VOBIZ
-    ========================================= */
+    const stage =
+      lead.conversationStage || "intro";
+
+    console.log("📍 Current stage:", stage);
+
     const audioResponse = await axios.get(audioUrl, {
       responseType: "arraybuffer",
       headers: {
         "X-Auth-ID": process.env.VOBIZ_AUTH_ID,
-        "X-Auth-Token": process.env.VOBIZ_AUTH_TOKEN
+        "X-Auth-Token":
+          process.env.VOBIZ_AUTH_TOKEN
       }
     });
 
-    console.log("✅ Audio downloaded from Vobiz");
-    console.log("📦 Audio size:", audioResponse.data.length);
-
-    /* =========================================
-       STEP 2: CREATE MULTIPART FORM DATA
-    ========================================= */
     const form = new FormData();
 
-    form.append("file", Buffer.from(audioResponse.data), {
-      filename: "recording.mp3",
-      contentType: "audio/mpeg"
-    });
+    form.append(
+      "file",
+      Buffer.from(audioResponse.data),
+      {
+        filename: "recording.mp3",
+        contentType: "audio/mpeg"
+      }
+    );
 
     form.append("language_code", "hi-IN");
 
-    /* =========================================
-       STEP 3: SEND TO SARVAM STT
-    ========================================= */
     const sttResponse = await axios.post(
       "https://api.sarvam.ai/speech-to-text",
       form,
@@ -109,82 +107,124 @@ exports.processSlot = async (req, res) => {
       }
     );
 
-    console.log("🧠 STT Raw Response:", sttResponse.data);
-
     const transcript =
-      sttResponse.data?.transcript ||
-      sttResponse.data?.text ||
-      "";
+      sttResponse.data?.transcript || "";
 
     console.log("📝 Transcript:", transcript);
 
-    /* =========================================
-       STEP 4: SIMPLE AI REPLY ENGINE
-    ========================================= */
- const parsedSlot = parseHindiDateTime(transcript);
-console.log("📅 Parsed Slot:", parsedSlot);
+    let replyText = "";
+    let nextStage = stage;
 
-let replyText =
-  "धन्यवाद। हमने आपका demo request नोट कर लिया है।";
+    // ========================
+    // STAGE FLOW
+    // ========================
 
-if (!transcript) {
-  replyText =
-    "माफ कीजिए, आपकी बात समझ नहीं पाई। कृपया दोबारा बताइए।";
-} else if (parsedSlot) {
-  replyText =
-    `ठीक है। आपका demo ${parsedSlot.formatted} के लिए बुक कर दिया गया है।`;
-} 
- await Lead.updateOne(
-  { phone: req.body.To?.replace(/^91/, "") },
-  {
-    transcript,
-    demoDate: parsedSlot
-      ? parsedSlot.date.toLocaleDateString("en-IN")
-      : "",
-    demoTime: parsedSlot
-      ? parsedSlot.date.toLocaleTimeString("en-IN", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true
-        })
-      : "",
-    updatedAt: new Date()
-  }
-);
+    if (stage === "intro") {
+      replyText =
+        "धन्यवाद जी। Exowa एक smart practice platform है जहाँ बच्चा daily टेस्ट practice कर सकता है। क्या आप demo देखना चाहेंगे?";
 
-console.log("✅ Lead updated with transcript and slot");    
-     console.log("🤖 Final Reply:", replyText);
+      nextStage = "interest";
+    }
 
-    /* =========================================
-       STEP 5: RETURN XML RESPONSE
-    ========================================= */
+    else if (stage === "interest") {
+      const normalized =
+        transcript.toLowerCase();
+
+      if (
+        normalized.includes("हाँ") ||
+        normalized.includes("ha") ||
+        normalized.includes("demo") ||
+        normalized.includes("haan")
+      ) {
+        replyText =
+          "बहुत बढ़िया। कृपया demo का समय बताइए, जैसे आज शाम 6 बजे।";
+
+        nextStage = "demo_slot";
+      } else {
+        replyText =
+          "कोई बात नहीं। अगर आप चाहें तो बाद में demo schedule कर सकते हैं।";
+      }
+    }
+
+    else if (stage === "demo_slot") {
+      const parsedSlot =
+        parseHindiDateTime(transcript);
+
+      console.log(
+        "📅 Parsed Slot:",
+        parsedSlot
+      );
+
+      if (!parsedSlot) {
+        replyText =
+          "कृपया समय बताइए, जैसे आज शाम 6 बजे या कल सुबह 11 बजे।";
+      } else {
+        replyText =
+          `ठीक है। आपका demo ${parsedSlot.formatted} के लिए बुक कर दिया गया है।`;
+
+        lead.demoDate =
+          parsedSlot.date.toLocaleDateString(
+            "en-IN"
+          );
+
+        lead.demoTime =
+          parsedSlot.date.toLocaleTimeString(
+            "en-IN",
+            {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true
+            }
+          );
+
+        nextStage = "completed";
+      }
+    }
+
+    else {
+      replyText =
+        "धन्यवाद। हमारी team आपसे संपर्क करेगी।";
+    }
+
+    lead.transcript = transcript;
+    lead.conversationStage = nextStage;
+    lead.updatedAt = new Date();
+
+    await lead.save();
+
+    console.log("🤖 Final Reply:", replyText);
+
     res.set("Content-Type", "text/xml");
 
-    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+    return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
     ${replyText}
   </Speak>
+  ${
+    nextStage !== "completed"
+      ? `
+  <Record
+    action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
+    method="POST"
+    maxLength="10"
+    playBeep="true"
+    timeout="8"
+  />`
+      : ""
+  }
 </Response>`);
   } catch (error) {
     console.error(
-      "❌ processSlot Error Status:",
-      error.response?.status
-    );
-
-    console.error(
-      "❌ processSlot Error Data:",
-      error.response?.data?.toString()
-    );
-
-    console.error(
-      "❌ processSlot Error Message:",
+      "❌ processSlot Error:",
       error.message
     );
 
     res.set("Content-Type", "text/xml");
 
-    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+    return res.status(200).send(`
+<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
     माफ कीजिए, तकनीकी समस्या आ गई है।
