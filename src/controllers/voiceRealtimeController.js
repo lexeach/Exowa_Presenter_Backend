@@ -1,103 +1,83 @@
 const Lead = require("../models/Lead");
 
-/* =========================================
-   AI REPLY ENGINE
-========================================= */
-async function aiReplyEngine(transcript, phone) {
+exports.realtimeVoiceReply = async (req, res) => {
   try {
-    const lead = await Lead.findOne({
-      phone: phone?.replace(/^91/, "")
-    });
+    console.log("🎤 Realtime voice request:", req.body);
 
-    const referredBy =
-      lead?.referredBy || "आपके परिचित";
+    const { phone, transcript } = req.body;
 
-    const studentClass =
-      lead?.studentClass || "";
+    let lead = null;
 
-    // Opening fallback
+    if (phone) {
+      lead = await Lead.findOne({
+        $or: [
+          { phone },
+          { referralPhone: phone }
+        ]
+      });
+    }
+
+    const name = lead?.name || "जी";
+    const referredBy = lead?.referredBy;
+
+    let reply = "";
+
+    // FIRST CALL INTRO
     if (!transcript || transcript.trim() === "") {
-      return `नमस्ते, मैं Exowa से मीरा बोल रही हूँ।
+      if (referredBy) {
+        reply = `नमस्ते ${name}, मैं Exowa से मीरा बोल रही हूँ।
 आपका नंबर हमें ${referredBy} जी से मिला है।
 उन्होंने सुझाव दिया कि मैं आपसे बात करके Exowa के बारे में बताऊँ।
 क्या अभी 2 मिनट बात करने का सही समय है?`;
+      } else {
+        reply = `नमस्ते ${name}, मैं Exowa से मीरा बोल रही हूँ।
+हम बच्चों की पढ़ाई और टेस्ट प्रैक्टिस के लिए एक personalized learning platform हैं।
+क्या अभी 2 मिनट बात करने का सही समय है?`;
+      }
     }
 
-    const text = transcript.trim();
-
-    // YES intent
-    if (
-      text.includes("हाँ") ||
-      text.includes("जी") ||
-      text.includes("बिल्कुल") ||
-      text.includes("ठीक है")
+    // POSITIVE RESPONSE
+    else if (
+      transcript.includes("हाँ") ||
+      transcript.includes("haan") ||
+      transcript.includes("yes")
     ) {
-      return `बहुत धन्यवाद।
-Exowa में class ${studentClass} के बच्चों के लिए daily practice tests, instant feedback और personalized learning support मिलता है।
-क्या मैं आपके लिए एक free demo session book कर दूँ?`;
+      reply = `बहुत धन्यवाद।
+Exowa में बच्चे अपनी class के अनुसार रोज practice कर सकते हैं,
+custom question papers generate कर सकते हैं,
+और instant feedback पा सकते हैं।
+क्या मैं आपके बच्चे की class जान सकती हूँ?`;
     }
 
-    // Busy intent
-    if (
-      text.includes("बाद में") ||
-      text.includes("अभी नहीं") ||
-      text.includes("व्यस्त")
+    // BUSY RESPONSE
+    else if (
+      transcript.includes("बाद में") ||
+      transcript.includes("busy") ||
+      transcript.includes("अभी नहीं")
     ) {
-      return "कोई बात नहीं। मैं बाद में आपसे संपर्क कर लूँगी। धन्यवाद।";
+      reply = `कोई बात नहीं।
+कृपया अपना सुविधाजनक समय बताइए,
+हम उसी समय दोबारा कॉल करेंगे।`;
     }
 
-    // Pricing intent
-    if (
-      text.includes("फीस") ||
-      text.includes("price") ||
-      text.includes("कितना")
-    ) {
-      return "हमारे monthly और yearly plans available हैं। पहले मैं आपको free demo दिखा देती हूँ।";
+    // DEFAULT FALLBACK
+    else {
+      reply = `धन्यवाद।
+क्या मैं आपको Exowa के बारे में 1 मिनट में जानकारी दूँ?`;
     }
 
-    // Default
-    return "जी बिल्कुल, मैं आपकी मदद करती हूँ। क्या मैं आपके लिए एक free demo book कर दूँ?";
-  } catch (error) {
-    console.error("❌ AI reply engine error:", error);
-    return "माफ कीजिए, तकनीकी समस्या आ गई है।";
-  }
-}
-
-/* =========================================
-   REALTIME VOICE CONTROLLER
-========================================= */
-exports.handleRealtimeVoice = async (
-  req,
-  res
-) => {
-  try {
-    console.log(
-      "🎤 Realtime voice request:",
-      req.body
-    );
-
-    const { transcript, phone } = req.body;
-
-    const reply = await aiReplyEngine(
-      transcript,
-      phone
-    );
-
-    console.log("🤖 AI Reply:", reply);
+    console.log("🤖 Dynamic AI Reply:", reply);
 
     return res.status(200).json({
       success: true,
       reply
     });
   } catch (error) {
-    console.error(
-      "❌ Realtime voice controller error:",
-      error
-    );
+    console.error("❌ realtimeVoiceReply error:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Voice reply failed"
     });
   }
 };
