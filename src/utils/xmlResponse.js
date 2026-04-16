@@ -9,11 +9,17 @@ function escapeXML(text = "") {
     .replace(/'/g, "&apos;");
 }
 
-function xmlResponse(content = "") {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-${escapeXML(content)}
-</Response>`;
+function xmlResponse(text = "") {
+  const safeText = escapeXML(text).trim();
+
+  return (
+    '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<Response>' +
+    '<Speak language="hi-IN" voice="WOMAN">' +
+    safeText +
+    '</Speak>' +
+    '</Response>'
+  );
 }
 
 module.exports = xmlResponse;
