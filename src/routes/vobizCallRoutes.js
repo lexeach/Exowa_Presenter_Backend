@@ -6,10 +6,9 @@ const voiceController = require("../controllers/voiceController");
 router.get("/answer", voiceController.answerCall);
 router.post("/answer", voiceController.answerCall);
 
-router.post(
-  "/process-slot",
-  voiceController.processSlot
-);
+// IMPORTANT FIX
+router.get("/process-slot", voiceController.processSlot);
+router.post("/process-slot", voiceController.processSlot);
 
 console.log("✅ vobizCallRoutes loaded");
 
