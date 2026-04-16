@@ -6,51 +6,38 @@ const { getLLMReply } = require("../services/llmService");
 /**
  * Voice Answer XML
  */
+const xmlResponse = require("../utils/xmlResponse");
+
 exports.answerCall = async (req, res) => {
   try {
-    console.log("📞 Incoming call hit:", req.body);
+    const aiReply = await getLLMReply(
+      "Introduce yourself as Exowa AI sales executive in Hindi"
+    );
 
-    let aiReply =
-      "नमस्ते, मैं Exowa AI sales assistant बोल रही हूँ। मैं आपकी कैसे मदद कर सकती हूँ?";
+    const xml = xmlResponse(`
+<Speak language="hi-IN" voice="WOMAN">
+${aiReply}
+</Speak>
+`);
 
-    try {
-      // Optional AI response
-      aiReply = await getLLMReply(
-        "Introduce yourself as Exowa AI sales executive in Hindi"
-      );
-    } catch (err) {
-      console.error("❌ LLM Error:", err.message);
-    }
-
-    // VERY IMPORTANT
-    const safeReply = escapeXML(aiReply);
-
-    const xmlResponse = `
-<Response>
-   <Speak language="hi-IN" voice="WOMAN">
-      ${safeReply}
-   </Speak>
-</Response>`;
-
-    console.log("📤 Sending XML:", xmlResponse);
+    console.log("📤 XML =>", xml);
 
     res.set("Content-Type", "text/xml");
-    return res.status(200).send(xmlResponse);
-  } catch (error) {
-    console.error("❌ answerCall Error:", error);
+    return res.status(200).send(xml);
 
-    const fallbackXML = `
-<Response>
-   <Speak language="hi-IN" voice="WOMAN">
-      नमस्ते, तकनीकी समस्या के कारण कॉल आगे नहीं बढ़ पाई।
-   </Speak>
-</Response>`;
+  } catch (error) {
+    console.error("❌ Voice Error:", error);
+
+    const fallbackXML = xmlResponse(`
+<Speak language="hi-IN" voice="WOMAN">
+नमस्ते, तकनीकी समस्या के कारण कॉल आगे नहीं बढ़ पाई।
+</Speak>
+`);
 
     res.set("Content-Type", "text/xml");
     return res.status(200).send(fallbackXML);
   }
 };
-
 /**
  * Realtime Voice Events
  */
