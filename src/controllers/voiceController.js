@@ -1,6 +1,5 @@
 // src/controllers/voiceController.js
 
-const { escapeXML } = require("../utils/xmlHelper");
 const { getLLMReply } = require("../services/llmService");
 
 /**
