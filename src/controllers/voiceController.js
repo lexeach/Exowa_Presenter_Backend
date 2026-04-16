@@ -46,7 +46,7 @@ async function safeLLMReply(text) {
 }
 
 /* =========================================
-   1. FIRST CALL ANSWER XML
+   FIRST CALL ANSWER
 ========================================= */
 exports.answerCall = async (req, res) => {
   try {
@@ -58,8 +58,7 @@ exports.answerCall = async (req, res) => {
 <Response>
   <Speak language="hi-IN">
     नमस्ते। मैं Exowa से बोल रही हूँ।
-    कृपया demo का समय बताइए।
-    उदाहरण: कल शाम 6 बजे।
+    क्या आप अपने बच्चे के लिए demo देखना चाहेंगे?
   </Speak>
 
   <Record
@@ -76,9 +75,7 @@ exports.answerCall = async (req, res) => {
       error.message
     );
 
-    res.set("Content-Type", "text/xml");
-
-    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+    return res.status(200).send(`
 <Response>
   <Speak language="hi-IN">
     माफ कीजिए, अभी सिस्टम उपलब्ध नहीं है।
@@ -88,7 +85,7 @@ exports.answerCall = async (req, res) => {
 };
 
 /* =========================================
-   2. PROCESS USER SPEECH
+   PROCESS SLOT
 ========================================= */
 exports.processSlot = async (req, res) => {
   try {
@@ -99,9 +96,6 @@ exports.processSlot = async (req, res) => {
     const callId =
       req.body.CallUUID ||
       req.body.RequestUUID;
-
-    console.log("📞 Phone:", phone);
-    console.log("📞 Call UUID:", callId);
 
     const audioUrl =
       req.body.RecordUrl ||
@@ -126,9 +120,7 @@ exports.processSlot = async (req, res) => {
 
     console.log("📍 Current stage:", stage);
 
-    /* ==========================
-       AUDIO FETCH
-    ========================== */
+    /* AUDIO DOWNLOAD */
     const audioResponse = await axios.get(
       audioUrl,
       {
@@ -141,12 +133,6 @@ exports.processSlot = async (req, res) => {
               .VOBIZ_AUTH_TOKEN
         }
       }
-    );
-
-    console.log("✅ Audio downloaded");
-    console.log(
-      "📦 Audio size:",
-      audioResponse.data.length
     );
 
     const form = new FormData();
@@ -173,116 +159,70 @@ exports.processSlot = async (req, res) => {
       }
     );
 
-    console.log(
-      "🧠 STT Response:",
-      sttResponse.data
-    );
-
     const transcript =
       sttResponse.data?.transcript?.trim() ||
       "";
 
     console.log("📝 Transcript:", transcript);
 
-    const normalized =
-      transcript.toLowerCase().trim();
+    const normalized = transcript
+      .toLowerCase()
+      .replace(/[।.,!?]/g, "")
+      .trim();
 
     let replyText = "";
     let nextStage = stage;
 
-    /* ==========================
-       EMPTY INPUT HANDLE
-    ========================== */
+    /* EMPTY INPUT */
     if (!transcript) {
       replyText =
         "माफ कीजिए, आपकी आवाज़ साफ़ सुनाई नहीं दी। कृपया दोबारा बताइए।";
-
-      nextStage = stage;
     }
 
-    /* ==========================
-       INTRO
-    ========================== */
+    /* INTRO */
     else if (stage === "intro") {
-      replyText =
-        "बहुत बढ़िया। क्या आप demo देखना चाहेंगे?";
-
-      nextStage = "interest";
-    }
-
-    /* ==========================
-       INTEREST
-    ========================== */
-    else if (stage === "interest") {
-      const intentResult =
-        await findIntent(transcript);
-
-      console.log(
-        "🧠 Intent Result:",
-        intentResult
-      );
-
-      if (intentResult?.matched) {
-        replyText =
-          intentResult.response;
-
-        if (
-          intentResult.intent ===
-          "demo_interest"
-        ) {
-          nextStage = "demo_slot";
-        } else {
-          nextStage = "completed";
-        }
-      }
-
-      else if (
+      if (
         normalized.includes("हाँ") ||
         normalized.includes("हां") ||
         normalized.includes("जी") ||
-        normalized.includes("बिल्कुल") ||
-        normalized.includes("demo") ||
-        normalized.includes("डेमो")
+        normalized.includes("डेमो") ||
+        normalized.includes("demo")
+      ) {
+        replyText =
+          "बहुत बढ़िया। कृपया demo का समय बताइए, जैसे आज शाम 6 बजे।";
+
+        nextStage = "demo_slot";
+      } else {
+        replyText =
+          "जी, Exowa बच्चों के लिए daily practice और टेस्ट platform है। क्या आप demo देखना चाहेंगे?";
+
+        nextStage = "interest";
+      }
+    }
+
+    /* INTEREST */
+    else if (stage === "interest") {
+      if (
+        normalized.includes("हाँ") ||
+        normalized.includes("हां") ||
+        normalized.includes("जी") ||
+        normalized.includes("बिल्कुल")
       ) {
         replyText =
           "कृपया demo का समय बताइए, जैसे आज शाम 6 बजे।";
 
         nextStage = "demo_slot";
-
-        await saveIntent({
-          normalizedText:
-            intentResult?.normalizedText ||
-            normalized,
-          intent: "demo_interest",
-          response: replyText
-        });
-      }
-
-      else {
-        console.log(
-          "🤖 Calling OpenAI"
-        );
-
+      } else {
         replyText =
           await safeLLMReply(
             transcript
           );
 
-        nextStage = "completed";
-
-        await saveIntent({
-          normalizedText:
-            intentResult?.normalizedText ||
-            normalized,
-          intent: "auto_learned",
-          response: replyText
-        });
+        nextStage = "interest";
       }
     }
 
-    /* ==========================
-       DEMO SLOT
-    ========================== */
+    /* DEMO SLOT */
     else if (stage === "demo_slot") {
       const parsedSlot =
         parseHindiDateTime(
@@ -296,7 +236,7 @@ exports.processSlot = async (req, res) => {
 
       if (!parsedSlot) {
         replyText =
-          "कृपया समय दोबारा बताइए, जैसे 21 तारीख दोपहर 3 बजे।";
+          "कृपया समय दोबारा बताइए, जैसे रविवार शाम 6 बजे।";
 
         nextStage = "demo_slot";
       } else {
@@ -307,16 +247,14 @@ exports.processSlot = async (req, res) => {
           parsedSlot.formatted;
 
         replyText =
-          `बहुत बढ़िया। आपका demo ${parsedSlot.formatted} के लिए successfully book कर दिया गया है। हमारी टीम उसी समय आपसे संपर्क करेगी।`;
+          `बहुत बढ़िया। आपका demo ${parsedSlot.formatted} के लिए successfully book कर दिया गया है। हमारी team उसी समय आपसे संपर्क करेगी।`;
 
         nextStage =
           "completed";
       }
     }
 
-    /* ==========================
-       FALLBACK
-    ========================== */
+    /* FALLBACK */
     else {
       replyText =
         await safeLLMReply(
@@ -327,9 +265,7 @@ exports.processSlot = async (req, res) => {
         "completed";
     }
 
-    /* ==========================
-       SAVE MEMORY
-    ========================== */
+    /* SAVE LEAD */
     if (!lead.callSessions) {
       lead.callSessions = {};
     }
@@ -355,23 +291,13 @@ exports.processSlot = async (req, res) => {
 
     await lead.save();
 
-    console.log("✅ Lead updated");
     console.log(
       "➡️ Next stage:",
       nextStage
     );
-    console.log(
-      "🤖 Final Reply:",
-      replyText
-    );
 
     const safeReply =
       xmlSafe(replyText);
-
-    res.set(
-      "Content-Type",
-      "text/xml"
-    );
 
     return res.status(200).send(`
 <?xml version="1.0" encoding="UTF-8"?>
@@ -397,11 +323,6 @@ exports.processSlot = async (req, res) => {
     console.error(
       "❌ processSlot Error:",
       error.message
-    );
-
-    res.set(
-      "Content-Type",
-      "text/xml"
     );
 
     return res.status(200).send(`
