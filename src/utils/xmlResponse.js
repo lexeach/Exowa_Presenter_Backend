@@ -1,5 +1,3 @@
-// src/utils/xmlResponse.js
-
 function escapeXML(text = "") {
   return String(text)
     .replace(/&/g, "&amp;")
@@ -12,24 +10,36 @@ function escapeXML(text = "") {
 function xmlResponse(text = "") {
   const safeText = escapeXML(text).trim();
 
-  return (
-    '<?xml version="1.0" encoding="UTF-8"?>' +
-    '<Response>' +
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
 
-      // 🔥 MAIN FIX: keep call alive + listen user
-      '<GetInput action="https://exowa-presenter-backend.onrender.com/api/voice/realtime" method="POST" inputType="speech" timeout="5">' +
-        '<Speak language="hi-IN" voice="WOMAN">' +
-          safeText +
-        '</Speak>' +
-      '</GetInput>' +
+  <GetInput 
+    action="https://exowa-presenter-backend.onrender.com/api/voice/realtime" 
+    method="POST" 
+    inputType="speech"
+    speechTimeout="auto"
+    timeout="10">
 
-      // 🔁 fallback if user does not speak
-      '<Speak language="hi-IN" voice="WOMAN">' +
-        'हम आपकी प्रतिक्रिया प्राप्त नहीं कर सके। धन्यवाद।' +
-      '</Speak>' +
+    <Speak language="hi-IN" voice="WOMAN">
+      ${safeText}
+    </Speak>
 
-    '</Response>'
-  );
+  </GetInput>
+
+  <!-- अगर user कुछ नहीं बोले -->
+  <Speak language="hi-IN" voice="WOMAN">
+    क्या आप मुझे सुन पा रहे हैं? कृपया कुछ बोलिए।
+  </Speak>
+
+  <!-- फिर दुबारा सुनो -->
+  <GetInput 
+    action="https://exowa-presenter-backend.onrender.com/api/voice/realtime" 
+    method="POST" 
+    inputType="speech"
+    timeout="8">
+  </GetInput>
+
+</Response>`;
 }
 
 module.exports = xmlResponse;
