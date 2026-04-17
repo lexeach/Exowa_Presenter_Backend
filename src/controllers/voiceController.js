@@ -4,18 +4,20 @@ const { getLLMReply } = require("../services/llmService");
 const xmlResponse = require("../utils/xmlResponse");
 
 /**
- * Voice Answer XML
+ * Answer Call (FIRST HIT)
  */
 exports.answerCall = async (req, res) => {
   try {
+    console.log("🔥 answerCall HIT");
+
     const aiReply = await getLLMReply(
       "Introduce yourself as Exowa AI sales executive in Hindi"
     );
 
-    // ✅ DIRECT text pass करो (no <Speak>)
+    // ✅ ONLY TEXT PASS करो
     const xml = xmlResponse(aiReply);
 
-    console.log("📤 XML =>", xml);
+    console.log("📤 FINAL XML =>", xml);
 
     res.set("Content-Type", "application/xml");
     return res.status(200).send(xml);
@@ -31,31 +33,31 @@ exports.answerCall = async (req, res) => {
     return res.status(200).send(xml);
   }
 };
+
 /**
- * Realtime Voice Events
+ * Realtime Voice (LOOP)
  */
 exports.realtimeVoice = async (req, res) => {
   try {
-    console.log("📩 /api/voice/realtime hit", req.body);
+    console.log("📩 REALTIME HIT:", req.body);
 
-    const event = req.body.Event;
-    const status = req.body.CallStatus;
-    const phone = req.body.To || req.body.From;
+    const userSpeech = req.body.Speech || "hello";
 
-    console.log("📞 Event:", event);
-    console.log("📞 Status:", status);
-    console.log("📞 Phone:", phone);
+    const aiReply = await getLLMReply(userSpeech);
 
-    return res.status(200).json({
-      success: true,
-      message: "Realtime call status updated",
-    });
+    const xml = xmlResponse(aiReply);
+
+    console.log("📤 REALTIME XML =>", xml);
+
+    res.set("Content-Type", "application/xml");
+    return res.send(xml);
+
   } catch (error) {
-    console.error("❌ realtimeVoice Error:", error);
+    console.error("❌ realtime error:", error);
 
-    return res.status(500).json({
-      success: false,
-      message: "Realtime update failed",
-    });
+    const xml = xmlResponse("कृपया फिर से बोलिए।");
+
+    res.set("Content-Type", "application/xml");
+    return res.send(xml);
   }
 };
