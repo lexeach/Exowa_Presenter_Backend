@@ -16,8 +16,9 @@ function xmlResponse(text = "") {
     method="POST"
     inputType="speech"
     execution="async"
+    bargein="true"
     speechTimeout="auto"
-    timeout="10">
+    timeout="15">
 
     <Speak language="hi-IN" voice="WOMAN">
       ${text}
