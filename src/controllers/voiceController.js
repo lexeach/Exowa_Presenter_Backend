@@ -10,11 +10,18 @@ exports.answerCall = async (req, res) => {
   try {
     console.log("🔥 answerCall HIT");
 
-    const aiReply = await getLLMReply(
-      "Introduce yourself as Exowa AI sales executive in Hindi"
-    );
+    let aiReply;
 
-    // ✅ ONLY TEXT PASS करो
+    try {
+      aiReply = await getLLMReply(
+        "Introduce yourself as Exowa AI sales executive in Hindi"
+      );
+    } catch (err) {
+      console.log("⚠️ OpenAI failed, using fallback");
+      aiReply =
+        "नमस्ते, मैं Exowa AI sales assistant बोल रही हूँ। क्या आप अपने बच्चे की पढ़ाई के बारे में बात करना चाहेंगे?";
+    }
+
     const xml = xmlResponse(aiReply);
 
     console.log("📤 FINAL XML =>", xml);
@@ -33,7 +40,6 @@ exports.answerCall = async (req, res) => {
     return res.status(200).send(xml);
   }
 };
-
 /**
  * Realtime Voice (LOOP)
  */
