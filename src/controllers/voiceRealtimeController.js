@@ -2,24 +2,41 @@ const Lead = require("../models/Lead");
 const xmlResponse = require("../utils/xmlResponse");
 const { getLLMReply } = require("../services/llmService");
 
-exports.realtimeVoiceReply = async (req, res) => {
+//exports.realtimeVoiceReply = async (req, res) => {
+exports.realtimeVoice = async (req, res) => {
   try {
     console.log("📩 REALTIME HIT:", req.body);
 
     const userSpeech = req.body.Speech || "hello";
 
-    let aiReply;
+    let aiReply = "जी, कृपया थोड़ा विस्तार से बताइए।";
 
     try {
-      aiReply = await getLLMReply(userSpeech);
+      const llmReply = await getLLMReply(userSpeech);
+
+      if (llmReply && llmReply.trim()) {
+        aiReply = llmReply;
+      }
+
     } catch (err) {
-      console.log("⚠️ OpenAI failed realtime");
-      aiReply = "जी, कृपया दोबारा बताइए।";
+      console.error("❌ LLM failed, using fallback");
     }
 
-    const xml = xmlResponse(aiReply);
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <GetInput 
+    action="https://exowa-presenter-backend.onrender.com/api/voice/realtime" 
+    method="POST" 
+    inputType="speech"
+    speechTimeout="auto"
+    timeout="10">
 
-    console.log("📤 REALTIME XML =>", xml);
+    <Speak language="hi-IN" voice="WOMAN">
+      ${aiReply}
+    </Speak>
+
+  </GetInput>
+</Response>`;
 
     res.set("Content-Type", "application/xml");
     return res.send(xml);
@@ -27,9 +44,9 @@ exports.realtimeVoiceReply = async (req, res) => {
   } catch (error) {
     console.error("❌ realtime error:", error);
 
-    const xml = xmlResponse("कृपया फिर से बोलिए।");
-
-    res.set("Content-Type", "application/xml");
-    return res.send(xml);
+    return res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak>कृपया फिर से बोलिए</Speak>
+</Response>`);
   }
 };
