@@ -17,7 +17,7 @@ function xmlResponse(text = "") {
     '<Response>' +
 
       // 🔥 MAIN FIX: keep call alive + listen user
-      '<GetInput action="/api/voice/realtime" method="POST" inputType="speech" timeout="5">' +
+      '<GetInput action="https://exowa-presenter-backend.onrender.com/api/voice/realtime" method="POST" inputType="speech" timeout="5">' +
         '<Speak language="hi-IN" voice="WOMAN">' +
           safeText +
         '</Speak>' +
