@@ -7,10 +7,9 @@ const xmlResponse = require("../utils/xmlResponse");
  * Answer Call (FIRST HIT)
  */
 exports.answerCall = async (req, res) => {
-  console.log("🔥 answerCall HIT");
-
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+
   <GetInput 
     action="https://exowa-presenter-backend.onrender.com/api/voice/realtime" 
     method="POST" 
@@ -18,15 +17,17 @@ exports.answerCall = async (req, res) => {
     timeout="10">
 
     <Speak language="hi-IN" voice="WOMAN">
-      नमस्ते, क्या आप मुझे सुन पा रहे हैं?
+      नमस्ते, मैं Exowa AI assistant बोल रही हूँ। क्या आप मुझे सुन पा रहे हैं?
     </Speak>
 
   </GetInput>
+
 </Response>`;
 
   res.set("Content-Type", "application/xml");
   return res.send(xml);
-};/**
+};
+/**
  * Realtime Voice (LOOP)
  */
 exports.realtimeVoice = async (req, res) => {
