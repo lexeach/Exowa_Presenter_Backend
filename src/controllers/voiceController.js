@@ -8,24 +8,40 @@ const xmlResponse = require("../utils/xmlResponse");
  */
 exports.answerCall = async (req, res) => {
   try {
-    console.log("🔥 answerCall HIT");
+    console.log("📩 ANSWER HIT:", req.body);
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+    // 🔥 अगर user ने कुछ बोला है
+    const userSpeech = req.body.Speech;
+
+    let aiReply;
+
+    if (userSpeech) {
+      aiReply = await getLLMReply(userSpeech);
+    } else {
+      aiReply = await getLLMReply(
+        "Introduce yourself as Exowa AI sales executive in Hindi"
+      );
+    }
+
+    const xml = `
 <Response>
 
   <GetInput 
-    action="https://exowa-presenter-backend.onrender.com/api/voice/realtime" 
-    method="POST" 
+    action="https://exowa-presenter-backend.onrender.com/api/voice/answer"
+    method="POST"
     inputType="speech"
     speechTimeout="auto"
     timeout="10">
 
     <Speak language="hi-IN" voice="WOMAN">
-      नमस्ते, मैं Exowa AI sales assistant बोल रही हूँ।
-      क्या आप मुझे सुन पा रहे हैं?
+      ${aiReply}
     </Speak>
 
   </GetInput>
+
+  <Speak language="hi-IN" voice="WOMAN">
+    क्या आप मुझे सुन पा रहे हैं? कृपया कुछ बोलिए।
+  </Speak>
 
 </Response>`;
 
@@ -33,11 +49,13 @@ exports.answerCall = async (req, res) => {
     return res.send(xml);
 
   } catch (error) {
-    console.error("❌ answerCall error:", error);
+    console.error("❌ Voice Error:", error);
 
-    return res.send(`<?xml version="1.0" encoding="UTF-8"?>
+    return res.send(`
 <Response>
-  <Speak>तकनीकी समस्या हुई है</Speak>
+  <Speak language="hi-IN" voice="WOMAN">
+    तकनीकी समस्या आ गई है।
+  </Speak>
 </Response>`);
   }
 };
