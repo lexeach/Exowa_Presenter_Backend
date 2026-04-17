@@ -23,7 +23,7 @@ exports.getLLMReply = async (userMessage) => {
       ],
 
       // 🔥 VERY IMPORTANT (call cut fix)
-      timeout: 3000
+      timeout: 10000
     });
 
     const reply =
