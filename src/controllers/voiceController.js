@@ -8,41 +8,29 @@ const xmlResponse = require("../utils/xmlResponse");
  */
 exports.answerCall = async (req, res) => {
   try {
-    console.log("📞 /api/voice/answer hit", req.body);
+    const aiReply = await getLLMReply(
+      "Introduce yourself as Exowa AI sales executive in Hindi"
+    );
 
-    let aiReply;
-
-    try {
-      aiReply = await getLLMReply(
-        "Introduce yourself as Exowa AI sales executive in Hindi"
-      );
-    } catch (llmError) {
-      console.error("❌ LLM Error:", llmError.message);
-      aiReply =
-        "नमस्ते, मैं Exowa AI sales executive बोल रही हूँ। मैं आपकी कैसे सहायता कर सकती हूँ?";
-    }
-
-    // IMPORTANT: pass plain text only
+    // ✅ DIRECT text pass करो (no <Speak>)
     const xml = xmlResponse(aiReply);
 
-    console.log("📤 FINAL XML SENT =>", xml);
+    console.log("📤 XML =>", xml);
 
     res.set("Content-Type", "application/xml");
     return res.status(200).send(xml);
+
   } catch (error) {
     console.error("❌ Voice Error:", error);
 
-    const fallbackXML = xmlResponse(
+    const xml = xmlResponse(
       "नमस्ते, तकनीकी समस्या के कारण कॉल आगे नहीं बढ़ पाई।"
     );
 
-    console.log("📤 FALLBACK XML =>", fallbackXML);
-
     res.set("Content-Type", "application/xml");
-    return res.status(200).send(fallbackXML);
+    return res.status(200).send(xml);
   }
 };
-
 /**
  * Realtime Voice Events
  */
