@@ -2,8 +2,8 @@ const Lead = require("../models/Lead");
 const xmlResponse = require("../utils/xmlResponse");
 const { getLLMReply } = require("../services/llmService");
 
-//exports.realtimeVoiceReply = async (req, res) => {
-exports.realtimeVoice = async (req, res) => {
+exports.realtimeVoiceReply = async (req, res) => {
+//exports.realtimeVoice = async (req, res) => {
   try {
     console.log("📩 REALTIME HIT:", req.body);
 
