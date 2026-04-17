@@ -7,40 +7,26 @@ const xmlResponse = require("../utils/xmlResponse");
  * Answer Call (FIRST HIT)
  */
 exports.answerCall = async (req, res) => {
-  try {
-    console.log("🔥 answerCall HIT");
+  console.log("🔥 answerCall HIT");
 
-    let aiReply;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <GetInput 
+    action="https://exowa-presenter-backend.onrender.com/api/voice/realtime" 
+    method="POST" 
+    inputType="speech"
+    timeout="10">
 
-    try {
-      aiReply = await getLLMReply(
-        "Introduce yourself as Exowa AI sales executive in Hindi"
-      );
-    } catch (err) {
-      console.log("⚠️ OpenAI failed, using fallback");
-      aiReply =
-        "नमस्ते, मैं Exowa AI sales assistant बोल रही हूँ। क्या आप अपने बच्चे की पढ़ाई के बारे में बात करना चाहेंगे?";
-    }
+    <Speak language="hi-IN" voice="WOMAN">
+      नमस्ते, क्या आप मुझे सुन पा रहे हैं?
+    </Speak>
 
-    const xml = xmlResponse(aiReply);
+  </GetInput>
+</Response>`;
 
-    console.log("📤 FINAL XML =>", xml);
-
-    res.set("Content-Type", "application/xml");
-    return res.status(200).send(xml);
-
-  } catch (error) {
-    console.error("❌ Voice Error:", error);
-
-    const xml = xmlResponse(
-      "नमस्ते, तकनीकी समस्या के कारण कॉल आगे नहीं बढ़ पाई।"
-    );
-
-    res.set("Content-Type", "application/xml");
-    return res.status(200).send(xml);
-  }
-};
-/**
+  res.set("Content-Type", "application/xml");
+  return res.send(xml);
+};/**
  * Realtime Voice (LOOP)
  */
 exports.realtimeVoice = async (req, res) => {
