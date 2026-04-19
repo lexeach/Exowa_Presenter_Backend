@@ -1,8 +1,8 @@
-const response = await openai.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "hello" }],
-});
+const OpenAI = require("openai");
+
+// 🔍 Debug (optional)
 console.log("OPENAI KEY:", process.env.OPENAI_API_KEY);
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -24,9 +24,7 @@ exports.getLLMReply = async (userMessage) => {
           content: userMessage
         }
       ],
-
-      // 🔥 VERY IMPORTANT (call cut fix)
-      timeout: 10000
+      timeout: 15000 // 🔥 safer timeout
     });
 
     const reply =
@@ -38,7 +36,30 @@ exports.getLLMReply = async (userMessage) => {
   } catch (error) {
     console.error("❌ OpenAI Error:", error.message);
 
-    // 🔥 fallback fast return (VERY IMPORTANT)
-    return "जी, कृपया थोड़ा विस्तार से बताइए।";
+    // 🔁 RETRY ONCE (network fix)
+    try {
+      const retryResponse = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a Hindi speaking AI sales executive for Exowa. Talk naturally and keep responses short."
+          },
+          {
+            role: "user",
+            content: userMessage
+          }
+        ]
+      });
+
+      return retryResponse.choices?.[0]?.message?.content;
+
+    } catch (retryError) {
+      console.error("❌ Retry failed:", retryError.message);
+
+      // 🔥 FAST fallback (call कटने से बचाने के लिए)
+      return "नमस्ते, क्या आप मुझे सुन पा रहे हैं?";
+    }
   }
 };
