@@ -1,6 +1,6 @@
 const OpenAI = require("openai");
 
-// 🔍 Debug (optional)
+// Debug
 console.log("OPENAI KEY:", process.env.OPENAI_API_KEY);
 
 const openai = new OpenAI({
@@ -23,8 +23,7 @@ exports.getLLMReply = async (userMessage) => {
           role: "user",
           content: userMessage
         }
-      ],
-      timeout: 15000 // 🔥 safer timeout
+      ]
     });
 
     const reply =
@@ -36,7 +35,7 @@ exports.getLLMReply = async (userMessage) => {
   } catch (error) {
     console.error("❌ OpenAI Error:", error.message);
 
-    // 🔁 RETRY ONCE (network fix)
+    // retry
     try {
       const retryResponse = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -58,7 +57,6 @@ exports.getLLMReply = async (userMessage) => {
     } catch (retryError) {
       console.error("❌ Retry failed:", retryError.message);
 
-      // 🔥 FAST fallback (call कटने से बचाने के लिए)
       return "नमस्ते, क्या आप मुझे सुन पा रहे हैं?";
     }
   }
