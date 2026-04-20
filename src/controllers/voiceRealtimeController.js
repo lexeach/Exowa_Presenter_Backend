@@ -12,38 +12,24 @@ exports.realtimeVoiceReply = async (req, res) => {
       req.body.CallUUID ||
       req.body.RequestUUID;
 
-    /* ===============================
-       🛑 STOP AFTER CALL END
-    =============================== */
-    if (
-      event === "Hangup" ||
-      callStatus === "completed"
-    ) {
+    // 🚨 Call end → STOP
+    if (event === "Hangup" || callStatus === "completed") {
       console.log("📴 Call ended");
       return res.status(200).send("OK");
     }
 
-    /* ===============================
-       SAVE CALL STATUS (OPTIONAL CRM)
-    =============================== */
-    if (phone) {
-      const lead = await Lead.findOne({ phone });
+    // Save status
+    const lead = await Lead.findOne({ phone });
 
-      if (lead) {
-        lead.lastEvent = event;
-        lead.callStatus = callStatus;
-        lead.lastCallUUID = callId;
-        lead.updatedAt = new Date();
+    if (lead) {
+      lead.lastEvent = event;
+      lead.callStatus = callStatus;
+      lead.lastCallUUID = callId;
+      lead.updatedAt = new Date();
 
-        await lead.save();
-
-        console.log("✅ Realtime status updated");
-      }
+      await lead.save();
     }
 
-    /* ===============================
-       🚫 NO AI HERE
-    =============================== */
     return res.status(200).send("OK");
 
   } catch (error) {
