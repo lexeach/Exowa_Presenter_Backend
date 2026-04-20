@@ -1,58 +1,37 @@
 const { getLLMReply } = require("../services/llmService");
 
-/* ===============================
-   XML SAFE
-=============================== */
-function xmlSafe(text = "") {
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-/* ===============================
-   ANSWER + AI LOOP (MAIN ENGINE)
-=============================== */
+/**
+ * ANSWER CALL (FIRST HIT + LOOP)
+ */
 exports.answerCall = async (req, res) => {
   try {
     console.log("📩 ANSWER HIT:", req.body);
 
-    const userSpeech = (req.body.Speech || "").trim();
+    const userSpeech = req.body.Speech;
 
-    let aiReply = "";
+    let aiReply;
 
-    try {
-      if (userSpeech) {
-        aiReply = await getLLMReply(userSpeech);
-      } else {
-        aiReply = await getLLMReply(
-          "Introduce yourself as Exowa AI sales executive in Hindi and ask for demo"
-        );
-      }
-    } catch (err) {
-      console.error("❌ LLM error:", err.message);
+    if (userSpeech) {
+      aiReply = await getLLMReply(userSpeech);
+    } else {
       aiReply =
-        "नमस्ते, मैं Exowa से बोल रही हूँ। क्या आप demo देखना चाहेंगे?";
+        "नमस्ते, मैं Exowa से बोल रही हूँ। क्या आप अपने बच्चे के लिए पढ़ाई में सुधार चाहते हैं?";
     }
-
-    const safeReply = xmlSafe(aiReply);
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-
   <GetInput 
     action="https://exowa-presenter-backend.onrender.com/api/voice/answer"
     method="POST"
     inputType="speech"
     speechTimeout="auto"
-    timeout="10">
+    timeout="15">
 
     <Speak language="hi-IN" voice="WOMAN">
-      ${safeReply}
+      ${aiReply}
     </Speak>
 
   </GetInput>
-
 </Response>`;
 
     res.set("Content-Type", "application/xml");
@@ -64,7 +43,7 @@ exports.answerCall = async (req, res) => {
     return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Speak language="hi-IN">
-    तकनीकी समस्या आ गई है, कृपया बाद में प्रयास करें।
+    तकनीकी समस्या आ गई है।
   </Speak>
 </Response>`);
   }
