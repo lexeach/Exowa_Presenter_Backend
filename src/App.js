@@ -7,7 +7,7 @@ const mongoose = require("mongoose");
 
 /* ROUTES */
 const leadRoutes = require("./routes/LeadRoutes");
-const vobizCallRoutes = require("./routes/vobizCallRoutes");
+const vobizCallRoutes = require("./routes/voiceRealtimeRoutes");
 const voiceRealtimeRoutes = require("./routes/voiceRealtimeRoutes");
 
 /* SERVICES */
