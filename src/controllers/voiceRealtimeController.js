@@ -1,52 +1,54 @@
 const Lead = require("../models/Lead");
-const xmlResponse = require("../utils/xmlResponse");
-const { getLLMReply } = require("../services/llmService");
 
 exports.realtimeVoiceReply = async (req, res) => {
-//exports.realtimeVoice = async (req, res) => {
   try {
     console.log("📩 REALTIME HIT:", req.body);
 
-    const userSpeech = req.body.Speech || "hello";
+    const event = req.body.Event || "";
+    const callStatus = req.body.CallStatus || "";
 
-    let aiReply = "जी, कृपया थोड़ा विस्तार से बताइए।";
+    const phone = req.body.To?.slice(-10);
+    const callId =
+      req.body.CallUUID ||
+      req.body.RequestUUID;
 
-    try {
-      const llmReply = await getLLMReply(userSpeech);
-
-      if (llmReply && llmReply.trim()) {
-        aiReply = llmReply;
-      }
-
-    } catch (err) {
-      console.error("❌ LLM failed, using fallback");
+    /* =========================================
+       🚨 STOP AI AFTER CALL END
+    ========================================= */
+    if (
+      event === "Hangup" ||
+      callStatus === "completed"
+    ) {
+      console.log("📴 Call ended - skipping AI");
+      return res.status(200).send("OK");
     }
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <GetInput 
-    action="https://exowa-presenter-backend.onrender.com/api/voice/realtime" 
-    method="POST" 
-    inputType="speech"
-    speechTimeout="auto"
-    timeout="10">
+    /* =========================================
+       SAVE CALL STATUS
+    ========================================= */
+    const lead = await Lead.findOne({ phone });
 
-    <Speak language="hi-IN" voice="WOMAN">
-      ${aiReply}
-    </Speak>
+    if (lead) {
+      lead.lastEvent = event;
+      lead.callStatus = callStatus;
+      lead.lastCallUUID = callId;
+      lead.updatedAt = new Date();
 
-  </GetInput>
-</Response>`;
+      await lead.save();
 
-    res.set("Content-Type", "application/xml");
-    return res.send(xml);
+      console.log("✅ Realtime status updated");
+    }
+
+    /* =========================================
+       ⚠️ IMPORTANT:
+       DO NOT RUN LLM HERE
+       DO NOT USE GetInput LOOP
+    ========================================= */
+
+    return res.status(200).send("OK");
 
   } catch (error) {
-    console.error("❌ realtime error:", error);
-
-    return res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Speak>कृपया फिर से बोलिए</Speak>
-</Response>`);
+    console.error("❌ realtime error:", error.message);
+    return res.status(200).send("OK");
   }
 };
