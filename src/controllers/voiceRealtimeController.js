@@ -1,54 +1,96 @@
 const Lead = require("../models/Lead");
+const { getLLMReply } = require("../services/llmService");
+
+// XML safe
+function xmlSafe(text = "") {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
 exports.realtimeVoiceReply = async (req, res) => {
   try {
     console.log("📩 REALTIME HIT:", req.body);
 
-    const event = req.body.Event || "";
     const callStatus = req.body.CallStatus || "";
+    const speech = (req.body.Speech || "").trim();
 
-    const phone = req.body.To?.slice(-10);
-    const callId =
-      req.body.CallUUID ||
-      req.body.RequestUUID;
-
-    /* =========================================
-       🚨 STOP AI AFTER CALL END
-    ========================================= */
-    if (
-      event === "Hangup" ||
-      callStatus === "completed"
-    ) {
+    // 🛑 Call end → no AI
+    if (callStatus === "completed") {
       console.log("📴 Call ended - skipping AI");
-      return res.status(200).send("OK");
+
+      return res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+</Response>`);
     }
 
-    /* =========================================
-       SAVE CALL STATUS
-    ========================================= */
-    const lead = await Lead.findOne({ phone });
+    // ❌ Empty speech
+    if (!speech) {
+      console.log("⚠️ No speech detected");
 
-    if (lead) {
-      lead.lastEvent = event;
-      lead.callStatus = callStatus;
-      lead.lastCallUUID = callId;
-      lead.updatedAt = new Date();
+      return res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
 
-      await lead.save();
+  <GetInput 
+    action="https://exowa-presenter-backend.onrender.com/api/voice/realtime"
+    method="POST"
+    inputType="speech"
+    speechTimeout="auto"
+    timeout="10">
 
-      console.log("✅ Realtime status updated");
+    <Speak language="hi-IN">
+      कृपया कुछ बोलिए।
+    </Speak>
+
+  </GetInput>
+
+</Response>`);
     }
 
-    /* =========================================
-       ⚠️ IMPORTANT:
-       DO NOT RUN LLM HERE
-       DO NOT USE GetInput LOOP
-    ========================================= */
+    // 🤖 AI reply
+    let aiReply = "जी, कृपया थोड़ा विस्तार से बताइए।";
 
-    return res.status(200).send("OK");
+    try {
+      const llmReply = await getLLMReply(speech);
+
+      if (llmReply && llmReply.trim()) {
+        aiReply = llmReply;
+      }
+    } catch (err) {
+      console.error("❌ LLM error:", err.message);
+    }
+
+    const safeReply = xmlSafe(aiReply);
+
+    // 🔁 LOOP CONTINUE
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+
+  <GetInput 
+    action="https://exowa-presenter-backend.onrender.com/api/voice/realtime"
+    method="POST"
+    inputType="speech"
+    speechTimeout="auto"
+    timeout="10">
+
+    <Speak language="hi-IN" voice="WOMAN">
+      ${safeReply}
+    </Speak>
+
+  </GetInput>
+
+</Response>`;
+
+    res.set("Content-Type", "application/xml");
+    return res.send(xml);
 
   } catch (error) {
-    console.error("❌ realtime error:", error.message);
-    return res.status(200).send("OK");
+    console.error("❌ realtime error:", error);
+
+    return res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak>कृपया फिर से बोलिए</Speak>
+</Response>`);
   }
 };
