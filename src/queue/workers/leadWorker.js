@@ -1,4 +1,5 @@
 const { Worker } = require("bullmq");
+const { leadQueue } = require("../queueManager"); // 👈 SAME SOURCE
 const callEngine = require("../../voice/callEngine");
 
 const connection = {
@@ -7,19 +8,19 @@ const connection = {
 };
 
 const worker = new Worker(
-  "leadQueue",
+  "leadQueue", // ⚠️ EXACT SAME NAME
   async (job) => {
     try {
       const lead = job.data;
 
-      console.log("🚀 Processing lead:", lead.phone || lead.referralPhone);
+      console.log("🚀 Processing lead:", lead);
 
       const phone =
         lead.phone ||
         lead.referralPhone;
 
       if (!phone) {
-        throw new Error("Phone missing in job data");
+        throw new Error("Phone missing");
       }
 
       const response =
@@ -29,10 +30,10 @@ const worker = new Worker(
           name: lead.name
         });
 
-      console.log("📞 Call result:", response);
+      console.log("📞 Call response:", response);
 
     } catch (error) {
-      console.error("❌ Worker Error:", error);
+      console.error("❌ Worker Error:", error.message);
       throw error;
     }
   },
