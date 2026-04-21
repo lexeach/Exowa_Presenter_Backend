@@ -17,7 +17,7 @@ const worker = new Worker(
     await callEngine.initiateCall({
       phone: lead.phone,
       name: lead.name,
-      leadId: lead._id
+      _id: lead._id
     });
   },
   connection
