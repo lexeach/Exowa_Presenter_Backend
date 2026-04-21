@@ -1,48 +1,32 @@
 exports.answerCall = async (req, res) => {
   try {
-    console.log("📩 ANSWER HIT:", req.body);
+    console.log("📩 /voice/answer hit", req.body);
 
-    const userSpeech = req.body.Speech;
-
-    let aiReply;
-
-    if (userSpeech) {
-      aiReply = await getLLMReply(userSpeech);
-    } else {
-      aiReply = "नमस्ते, मैं Exowa AI sales assistant बोल रही हूँ। क्या आप मुझे सुन पा रहे हैं?";
-    }
-
-    const xml = `
+    const responseXML = `
 <Response>
-
-  <GetInput 
-    action="https://exowa-presenter-backend.onrender.com/api/voice/answer"
-    method="POST"
-    inputType="speech"
-    speechTimeout="auto"
-    timeout="7">
-
-    <Speak language="hi-IN" voice="WOMAN">
-      ${aiReply}
-    </Speak>
-
-  </GetInput>
-
   <Speak language="hi-IN" voice="WOMAN">
-    कृपया कुछ बोलिए।
+    नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
   </Speak>
 
+  <GetInput
+    action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
+    method="POST"
+    inputType="speech"
+    language="hi-IN"
+    timeout="5"
+    speechTimeout="auto"
+  >
+    <Speak language="hi-IN" voice="WOMAN">
+      क्या आप मुझे सुन पा रहे हैं? कृपया कुछ बोलिए।
+    </Speak>
+  </GetInput>
 </Response>`;
 
-    res.set("Content-Type", "application/xml");
-    return res.send(xml);
+    res.set("Content-Type", "text/xml");
+    res.send(responseXML);
 
   } catch (error) {
-    console.error("❌ Voice Error:", error);
-
-    return res.send(`
-<Response>
-  <Speak>तकनीकी समस्या आ गई है</Speak>
-</Response>`);
+    console.error("❌ answerCall error:", error);
+    res.sendStatus(500);
   }
 };
