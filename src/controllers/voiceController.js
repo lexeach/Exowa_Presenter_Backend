@@ -2,37 +2,36 @@ exports.answerCall = async (req, res) => {
   try {
     console.log("📩 ANSWER HIT:", req.body);
 
-    const userSpeech =
-      req.body.Speech ||
-      req.body.speech ||
-      req.body.transcript ||
-      "";
+    const userSpeech = req.body.Speech;
 
     let aiReply;
 
-    if (!userSpeech) {
-      aiReply =
-        "नमस्ते, मैं Exowa से बोल रही हूँ। क्या आप अपने बच्चे के लिए demo देखना चाहेंगे?";
+    if (userSpeech) {
+      aiReply = await getLLMReply(userSpeech);
     } else {
-      aiReply = await retryLLM(userSpeech);
+      aiReply = "नमस्ते, मैं Exowa AI sales assistant बोल रही हूँ। क्या आप मुझे सुन पा रहे हैं?";
     }
 
-    const safeReply = xmlSafe(aiReply);
-
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+    const xml = `
 <Response>
+
   <GetInput 
     action="https://exowa-presenter-backend.onrender.com/api/voice/answer"
     method="POST"
     inputType="speech"
-    speechTimeout="3"
-    timeout="20">
+    speechTimeout="auto"
+    timeout="7">
 
     <Speak language="hi-IN" voice="WOMAN">
-      ${safeReply}
+      ${aiReply}
     </Speak>
 
   </GetInput>
+
+  <Speak language="hi-IN" voice="WOMAN">
+    कृपया कुछ बोलिए।
+  </Speak>
+
 </Response>`;
 
     res.set("Content-Type", "application/xml");
