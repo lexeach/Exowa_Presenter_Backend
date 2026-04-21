@@ -1,38 +1,53 @@
-const axios = require("axios");
+const config = require("./callConfig");
 
-async function initiateCall({ phone, name }) {
-  try {
-    const url = "https://api.vobiz.ai/v1/Account/MA_56FCN1OB/Call/";
+/* TELEPHONY PROVIDERS */
+const twilioProvider = require("../../providers/telephony/twilioProvider");
+const vobiz = require("../../providers/telephony/vobizProvider");
 
-    const payload = {
-      to: phone,
-      answer_url: "https://exowa-presenter-backend.onrender.com/api/voice/answer",
-      hangup_url: "https://exowa-presenter-backend.onrender.com/api/voice/realtime"
-    };
+class CallEngine {
+  getTelephony() {
+    switch (config.telephonyProvider) {
+      case "vobiz":
+        return vobiz;
 
-    const response = await axios.post(url, payload, {
-      headers: {
-        Authorization: `Basic ${process.env.VOBIZ_AUTH}`,
-        "Content-Type": "application/json"
+      case "twilio":
+        return twilioProvider;
+
+      default:
+        return vobiz;
+    }
+  }
+
+  async initiateCall(lead) {
+    try {
+      console.log("☎️ CallEngine received:", lead);
+
+      const phone =
+        lead.referralPhone ||
+        lead.phone;
+
+      if (!phone) {
+        throw new Error("Phone number missing");
       }
-    });
 
-    console.log("📞 Vobiz Call:", response.data);
+      const response =
+        await this.getTelephony().call({
+          phone,
+          leadId: lead._id,
+          name: lead.name,
+          referredBy: lead.referredBy,
+          sessionType: "realtime"
+        });
 
-    return {
-      success: true,
-      status: "CONNECTED",
-      callId: response.data.request_uuid
-    };
+      console.log("📞 Telephony response:", response);
 
-  } catch (error) {
-    console.error("❌ CallEngine Error:", error.response?.data || error.message);
+      return response;
 
-    return {
-      success: false,
-      status: "FAILED"
-    };
+    } catch (error) {
+      console.error("❌ CallEngine error:", error.message);
+      throw error;
+    }
   }
 }
 
-module.exports = { initiateCall };
+module.exports = new CallEngine();
