@@ -1,54 +1,73 @@
-const config = require("./callConfig");
+// src/voice/callEngine.js
 
-/* TELEPHONY PROVIDERS */
-const twilioProvider = require("../../providers/telephony/twilioProvider");
-const vobiz = require("../../providers/telephony/vobizProvider");
+const axios = require("axios");
 
 class CallEngine {
-  getTelephony() {
-    switch (config.telephonyProvider) {
-      case "vobiz":
-        return vobiz;
-
-      case "twilio":
-        return twilioProvider;
-
-      default:
-        return vobiz;
-    }
+  constructor() {
+    this.provider = "vobiz";
+    this.baseURL = process.env.BACKEND_BASE_URL;
   }
 
-  async initiateCall(lead) {
+  /**
+   * 📞 Start Realtime AI Call
+   */
+  async startCall(lead) {
     try {
-      console.log("☎️ Realtime CallEngine received:", lead);
+      console.log("☎️ Starting realtime call:", {
+        phone: lead.referralPhone,
+        leadId: lead._id,
+        name: lead.name,
+        sessionType: "realtime"
+      });
 
-      const phone =
-        lead.referralPhone ||
-        lead.phone;
+      const answerUrl = `${this.baseURL}/api/voice/answer`;
+      const hangupUrl = `${this.baseURL}/api/voice/realtime`;
 
-      const response =
-        await this
-          .getTelephony()
-          .call({
-            phone,
-            leadId: lead._id,
-            name: lead.name,
-            referredBy: lead.referredBy,
-            sessionType: "realtime"
-          });
+      console.log("📡 Using Answer URL:", answerUrl);
+      console.log("📡 Using Hangup URL:", hangupUrl);
 
-      console.log(
-        "📞 Realtime telephony response:",
-        response
+      const payload = {
+        from: process.env.VOBIZ_CALLER_ID,
+        to: `91${lead.referralPhone}`,
+        answer_url: answerUrl,
+        hangup_url: hangupUrl,
+        method: "POST"
+      };
+
+      const response = await axios.post(
+        "https://api.vobiz.ai/call/",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.VOBIZ_API_KEY}`
+          },
+          timeout: 10000
+        }
       );
 
-      return response;
+      console.log("📞 Vobiz Call:", response.data);
+
+      return {
+        success: true,
+        provider: "vobiz",
+        status: "CONNECTED",
+        callId:
+          response.data?.request_uuid ||
+          response.data?.api_id
+      };
+
     } catch (error) {
       console.error(
-        "❌ Realtime CallEngine error:",
-        error
+        "❌ CallEngine Error:",
+        error.response?.data || error.message
       );
-      throw error;
+
+      return {
+        success: false,
+        provider: "vobiz",
+        status: "FAILED"
+      };
     }
   }
 }
