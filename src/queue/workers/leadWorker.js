@@ -1,3 +1,4 @@
+const Redis = require('ioredis');
 const { Worker } = require("bullmq");
 const { leadQueue } = require("../queueManager"); // 👈 SAME SOURCE
 const callEngine = require('../../services/voice/callEngine');
