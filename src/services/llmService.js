@@ -1,63 +1,41 @@
-const OpenAI = require("openai");
+const axios = require("axios");
 
-// Debug
-console.log("OPENAI KEY:", process.env.OPENAI_API_KEY);
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-exports.getLLMReply = async (userMessage) => {
+exports.getLLMReply = async (text) => {
   try {
-    console.log("🤖 Sending to OpenAI:", userMessage);
+    console.log("🧠 LLM Input:", text);
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a Hindi speaking AI sales executive for Exowa. Talk naturally and keep responses short."
-        },
-        {
-          role: "user",
-          content: userMessage
-        }
-      ]
-    });
-
-    const reply =
-      response.choices?.[0]?.message?.content ||
-      "जी, कृपया थोड़ा विस्तार से बताइए।";
-
-    return reply;
-
-  } catch (error) {
-    console.error("❌ OpenAI Error:", error.message);
-
-    // retry
-    try {
-      const retryResponse = await openai.chat.completions.create({
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
             content:
-              "You are a Hindi speaking AI sales executive for Exowa. Talk naturally and keep responses short."
+              "You are a Hindi speaking AI sales executive for Exowa. Keep replies short and natural."
           },
           {
             role: "user",
-            content: userMessage
+            content: text
           }
-        ]
-      });
+        ],
+        temperature: 0.7
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        timeout: 10000 // 🔥 important
+      }
+    );
 
-      return retryResponse.choices?.[0]?.message?.content;
+    return response.data.choices[0].message.content;
 
-    } catch (retryError) {
-      console.error("❌ Retry failed:", retryError.message);
+  } catch (error) {
+    console.error("❌ LLM ERROR FULL:", error.response?.data || error.message);
 
-      return "नमस्ते, क्या आप मुझे सुन पा रहे हैं?";
-    }
+    // 🔥 NEVER BREAK CALL FLOW
+    return "जी, क्या आप demo देखना चाहेंगे?";
   }
 };
