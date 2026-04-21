@@ -1,35 +1,48 @@
-const callEngine = require('../../services/voice/callEngine');
-module.exports = async (job) => {
-  try {
-    const lead = job.data;
+const { Worker } = require("bullmq");
+const callEngine = require("../../voice/callEngine");
 
-    console.log("🚀 Processing lead:", lead.referralPhone);
-
-    /* =============================
-       ✅ FIX HERE
-    ============================== */
-    const phone =
-      lead.phone ||
-      lead.referralPhone;
-
-    const response =
-      await callEngine.initiateCall({
-        phone,
-        leadId: lead._id,
-        name: lead.name
-      });
-
-    console.log("📞 AI call response:", response);
-
-    if (!response.success) {
-      console.log("⏳ Retry scheduled in 15 mins");
-      throw new Error("Call failed");
-    }
-
-    console.log("📞 Call result:", response.status);
-
-  } catch (error) {
-    console.error("❌ Error in leadWorker:", error);
-    throw error;
-  }
+const connection = {
+  host: "127.0.0.1",
+  port: 6379
 };
+
+const worker = new Worker(
+  "leadQueue",
+  async (job) => {
+    try {
+      const lead = job.data;
+
+      console.log("🚀 Processing lead:", lead.phone || lead.referralPhone);
+
+      const phone =
+        lead.phone ||
+        lead.referralPhone;
+
+      if (!phone) {
+        throw new Error("Phone missing in job data");
+      }
+
+      const response =
+        await callEngine.initiateCall({
+          phone,
+          leadId: lead._id,
+          name: lead.name
+        });
+
+      console.log("📞 Call result:", response);
+
+    } catch (error) {
+      console.error("❌ Worker Error:", error);
+      throw error;
+    }
+  },
+  { connection }
+);
+
+worker.on("completed", (job) => {
+  console.log(`✅ Job completed: ${job.id}`);
+});
+
+worker.on("failed", (job, err) => {
+  console.error(`❌ Job failed: ${job.id}`, err.message);
+});
