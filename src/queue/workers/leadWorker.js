@@ -1,5 +1,5 @@
 const { Worker } = require("bullmq");
-const callEngine = require("../../voice/callEngine");
+const callEngine = require('../../services/voice/callEngine');
 
 const connection = {
   connection: {
