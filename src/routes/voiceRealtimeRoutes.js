@@ -3,23 +3,60 @@ const router = express.Router();
 
 const {
   realtimeVoiceReply
-} = require(
-  "../controllers/voiceRealtimeController"
-);
+} = require("../controllers/voiceRealtimeController");
 
-console.log(
-  "DEBUG realtimeVoiceReply:",
-  realtimeVoiceReply
-);
+console.log("DEBUG realtimeVoiceReply:", realtimeVoiceReply);
 
-// POST /api/voice/realtime
-router.post(
-  "/realtime",
-  realtimeVoiceReply
-);
+// ✅ EXISTING
+router.post("/realtime", realtimeVoiceReply);
 
-console.log(
-  "✅ voiceRealtimeRoutes loaded"
-);
+// 🔥 ADD THIS (VERY IMPORTANT)
+router.post("/process-slot", async (req, res) => {
+  try {
+    console.log("🎤 process-slot hit", req.body);
+
+    const responseXML = `
+<Response>
+
+  <Speak language="hi-IN" voice="WOMAN">
+    धन्यवाद, आपकी आवाज़ मिल गई।
+  </Speak>
+
+  <GetInput
+    action="https://exowa-presenter-backend.onrender.com/api/voice/process-slot"
+    method="POST"
+    inputType="speech"
+    language="hi-IN"
+    timeout="7"
+  >
+    <Speak language="hi-IN" voice="WOMAN">
+      क्या आप demo देखना चाहेंगे?
+    </Speak>
+  </GetInput>
+
+</Response>`;
+
+    res.set("Content-Type", "text/xml");
+    res.send(responseXML);
+
+  } catch (error) {
+    console.error("❌ process-slot error:", error);
+    res.sendStatus(500);
+  }
+});
+
+// 🔥 OPTIONAL (GET fallback)
+router.get("/process-slot", (req, res) => {
+  res.set("Content-Type", "text/xml");
+  res.send(`
+<Response>
+  <Speak language="hi-IN" voice="WOMAN">
+    कृपया कुछ बोलिए।
+  </Speak>
+</Response>
+  `);
+});
+
+console.log("✅ voiceRealtimeRoutes loaded");
 
 module.exports = router;
