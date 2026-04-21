@@ -6,11 +6,12 @@ class CallEngine {
     this.baseURL = process.env.BACKEND_BASE_URL;
   }
 
-  /* =========================================
-     MAIN CALL FUNCTION
-  ========================================= */
   async initiateCall({ phone, leadId, name }) {
     try {
+      if (!phone) {
+        throw new Error("Phone is missing");
+      }
+
       console.log("☎️ Starting realtime call:", {
         phone,
         leadId,
@@ -20,11 +21,14 @@ class CallEngine {
       const answerUrl = `${this.baseURL}/api/voice/answer`;
       const hangupUrl = `${this.baseURL}/api/voice/realtime`;
 
-      console.log("📡 Using Answer URL:", answerUrl);
-      console.log("📡 Using Hangup URL:", hangupUrl);
+      console.log("📡 Answer URL:", answerUrl);
+      console.log("📡 Hangup URL:", hangupUrl);
 
+      /* =============================
+         ✅ CORRECT VOBIZ API
+      ============================== */
       const response = await axios.post(
-        "https://api.vobiz.ai/call/",
+        "https://api.vobiz.ai/v1/call",
         {
           from: process.env.VOBIZ_CALLER_ID,
           to: `91${phone}`,
@@ -40,17 +44,20 @@ class CallEngine {
         }
       );
 
-      console.log("📞 Vobiz Call:", response.data);
+      console.log("📞 Vobiz Response:", response.data);
 
       return {
         success: true,
         provider: this.provider,
         status: "CONNECTED",
-        callId: response.data.request_uuid
+        callId: response.data?.request_uuid
       };
 
     } catch (error) {
-      console.error("❌ CallEngine Error:", error.response?.data || error.message);
+      console.error(
+        "❌ CallEngine Error:",
+        error.response?.data || error.message
+      );
 
       return {
         success: false,
@@ -61,7 +68,4 @@ class CallEngine {
   }
 }
 
-/* =========================================
-   EXPORT INSTANCE (VERY IMPORTANT)
-========================================= */
 module.exports = new CallEngine();
