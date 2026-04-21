@@ -1,5 +1,3 @@
-// src/voice/callEngine.js
-
 const axios = require("axios");
 
 class CallEngine {
@@ -8,16 +6,15 @@ class CallEngine {
     this.baseURL = process.env.BACKEND_BASE_URL;
   }
 
-  /**
-   * 📞 Start Realtime AI Call
-   */
-  async startCall(lead) {
+  /* =========================================
+     MAIN CALL FUNCTION
+  ========================================= */
+  async initiateCall({ phone, leadId, name }) {
     try {
       console.log("☎️ Starting realtime call:", {
-        phone: lead.referralPhone,
-        leadId: lead._id,
-        name: lead.name,
-        sessionType: "realtime"
+        phone,
+        leadId,
+        name
       });
 
       const answerUrl = `${this.baseURL}/api/voice/answer`;
@@ -26,23 +23,20 @@ class CallEngine {
       console.log("📡 Using Answer URL:", answerUrl);
       console.log("📡 Using Hangup URL:", hangupUrl);
 
-      const payload = {
-        from: process.env.VOBIZ_CALLER_ID,
-        to: `91${lead.referralPhone}`,
-        answer_url: answerUrl,
-        hangup_url: hangupUrl,
-        method: "POST"
-      };
-
       const response = await axios.post(
         "https://api.vobiz.ai/call/",
-        payload,
+        {
+          from: process.env.VOBIZ_CALLER_ID,
+          to: `91${phone}`,
+          answer_url: answerUrl,
+          hangup_url: hangupUrl
+        },
         {
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.VOBIZ_API_KEY}`
-          },
-          timeout: 10000
+            "X-Auth-ID": process.env.VOBIZ_AUTH_ID,
+            "X-Auth-Token": process.env.VOBIZ_AUTH_TOKEN,
+            "Content-Type": "application/json"
+          }
         }
       );
 
@@ -50,26 +44,24 @@ class CallEngine {
 
       return {
         success: true,
-        provider: "vobiz",
+        provider: this.provider,
         status: "CONNECTED",
-        callId:
-          response.data?.request_uuid ||
-          response.data?.api_id
+        callId: response.data.request_uuid
       };
 
     } catch (error) {
-      console.error(
-        "❌ CallEngine Error:",
-        error.response?.data || error.message
-      );
+      console.error("❌ CallEngine Error:", error.response?.data || error.message);
 
       return {
         success: false,
-        provider: "vobiz",
+        provider: this.provider,
         status: "FAILED"
       };
     }
   }
 }
 
+/* =========================================
+   EXPORT INSTANCE (VERY IMPORTANT)
+========================================= */
 module.exports = new CallEngine();
