@@ -1,6 +1,6 @@
 const { Worker } = require("bullmq");
 const { leadQueue } = require("../queueManager"); // 👈 SAME SOURCE
-const callEngine = require("../../voice/callEngine");
+const callEngine = require('../../services/voice/callEngine');
 
 const connection = {
   host: "127.0.0.1",
