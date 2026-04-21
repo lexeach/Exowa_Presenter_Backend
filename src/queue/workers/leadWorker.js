@@ -2,11 +2,7 @@ const { Worker } = require("bullmq");
 const { leadQueue } = require("../queueManager"); // 👈 SAME SOURCE
 const callEngine = require('../../services/voice/callEngine');
 
-const connection = {
-  host: "127.0.0.1",
-  port: 6379
-};
-
+const connection = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379');
 const worker = new Worker(
   "leadQueue", // ⚠️ EXACT SAME NAME
   async (job) => {
