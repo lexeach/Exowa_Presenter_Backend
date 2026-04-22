@@ -8,7 +8,7 @@ const {
 console.log("DEBUG realtimeVoiceReply:", realtimeVoiceReply);
 
 // ✅ CALL EVENTS (hangup etc.)
-router.post("/realtime", realtimeVoiceReply);
+router.post("/answer", answerCall);
 
 // ✅ MAIN AI CONVERSATION LOOP
 router.post("/process-slot", async (req, res) => {
