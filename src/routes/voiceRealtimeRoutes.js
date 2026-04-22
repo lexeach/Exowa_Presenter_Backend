@@ -1,44 +1,15 @@
-const express = require("express");
-const router = express.Router();
+const Lead = require("../models/Lead");
 
-const {
-  realtimeVoiceReply
-} = require("../controllers/voiceRealtimeController");
-
-console.log("DEBUG realtimeVoiceReply:", realtimeVoiceReply);
-
-// ✅ CALL EVENTS (hangup etc.)
-router.post("/answer", answerCall);
-
-// ✅ MAIN AI CONVERSATION LOOP
-router.post("/process-slot", async (req, res) => {
+// ================== ANSWER CALL ==================
+exports.answerCall = async (req, res) => {
   try {
-    console.log("🎤 process-slot hit", req.body);
-
-    // 🧠 User speech text (Vobiz sends different keys sometimes)
-    const userSpeech =
-      req.body.SpeechResult ||
-      req.body.speech ||
-      req.body.text ||
-      "";
-
-    console.log("🧠 User said:", userSpeech);
-
-    let reply = "माफ कीजिए, मैं समझ नहीं पाई।";
-
-    if (userSpeech.includes("हाँ") || userSpeech.includes("haan")) {
-      reply = "बहुत बढ़िया! मैं आपको demo के बारे में बताती हूँ।";
-    } else if (userSpeech.includes("नहीं") || userSpeech.includes("nahi")) {
-      reply = "कोई बात नहीं, अगर आप चाहें तो बाद में भी देख सकते हैं।";
-    } else {
-      reply = "क्या आप demo देखना चाहेंगे?";
-    }
+    console.log("📩 /voice/answer hit", req.body);
 
     const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
 
   <Speak language="hi-IN" voice="WOMAN">
-    ${reply}
+    नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
   </Speak>
 
   <GetInput
@@ -50,7 +21,7 @@ router.post("/process-slot", async (req, res) => {
     speechTimeout="auto"
   >
     <Speak language="hi-IN" voice="WOMAN">
-      कृपया जवाब दें।
+      क्या आप मुझे सुन पा रहे हैं? कृपया कुछ बोलिए।
     </Speak>
   </GetInput>
 
@@ -60,25 +31,46 @@ router.post("/process-slot", async (req, res) => {
     res.send(responseXML);
 
   } catch (error) {
-    console.error("❌ process-slot error:", error);
+    console.error("❌ answerCall error:", error);
     res.sendStatus(500);
   }
-});
+};
 
-// ✅ OPTIONAL: browser test
-router.get("/process-slot", (req, res) => {
-  console.log("🌐 GET process-slot hit");
+// ================== REALTIME WEBHOOK ==================
+exports.realtimeVoiceReply = async (req, res) => {
+  try {
+    console.log("📩 REALTIME WEBHOOK:", req.body);
 
-  res.set("Content-Type", "text/xml");
-  res.send(`
-<Response>
-  <Speak language="hi-IN" voice="WOMAN">
-    सिस्टम तैयार है। कृपया कुछ बोलिए।
-  </Speak>
-</Response>
-  `);
-});
+    const event = req.body.Event || "";
+    const callStatus = req.body.CallStatus || "";
 
-console.log("✅ voiceRealtimeRoutes loaded");
+    const phone = req.body.To?.slice(-10);
+    const callId =
+      req.body.CallUUID ||
+      req.body.RequestUUID;
 
-module.exports = router;
+    // Call end
+    if (event === "Hangup" || callStatus === "completed") {
+      console.log("📴 Call ended");
+      return res.status(200).send("OK");
+    }
+
+    // Save in DB
+    const lead = await Lead.findOne({ phone });
+
+    if (lead) {
+      lead.lastEvent = event;
+      lead.callStatus = callStatus;
+      lead.lastCallUUID = callId;
+      lead.updatedAt = new Date();
+
+      await lead.save();
+    }
+
+    return res.status(200).send("OK");
+
+  } catch (error) {
+    console.error("❌ realtime error:", error.message);
+    return res.status(200).send("OK");
+  }
+};
