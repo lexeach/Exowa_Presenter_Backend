@@ -8,7 +8,7 @@ const mongoose = require("mongoose");
 /* ROUTES */
 const leadRoutes = require("./routes/LeadRoutes");
 const vobizCallRoutes = require("./routes/voiceRealtimeRoutes");
-const voiceRealtimeRoutes = require("./routes/voiceRealtimeRoutes");
+const voiceRoutes = require("./routes/voiceRealtimeRoutes");
 
 /* SERVICES */
 const setupBullBoard = require("./queue/bullBoard");
@@ -105,7 +105,7 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/vobiz", vobizCallRoutes);
 
 /* REALTIME VOICE ROUTES */
-app.use("/api/voice", voiceRealtimeRoutes);
+app.use("/api/voice", voiceRoutes);
 
 /* ---------------------------
    BULL BOARD
