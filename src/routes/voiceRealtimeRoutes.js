@@ -7,19 +7,38 @@ const {
 
 console.log("DEBUG realtimeVoiceReply:", realtimeVoiceReply);
 
-// ✅ EXISTING
+// ✅ CALL EVENTS (hangup etc.)
 router.post("/realtime", realtimeVoiceReply);
 
-// 🔥 ADD THIS (VERY IMPORTANT)
+// ✅ MAIN AI CONVERSATION LOOP
 router.post("/process-slot", async (req, res) => {
   try {
     console.log("🎤 process-slot hit", req.body);
 
-    const responseXML = `
+    // 🧠 User speech text (Vobiz sends different keys sometimes)
+    const userSpeech =
+      req.body.SpeechResult ||
+      req.body.speech ||
+      req.body.text ||
+      "";
+
+    console.log("🧠 User said:", userSpeech);
+
+    let reply = "माफ कीजिए, मैं समझ नहीं पाई।";
+
+    if (userSpeech.includes("हाँ") || userSpeech.includes("haan")) {
+      reply = "बहुत बढ़िया! मैं आपको demo के बारे में बताती हूँ।";
+    } else if (userSpeech.includes("नहीं") || userSpeech.includes("nahi")) {
+      reply = "कोई बात नहीं, अगर आप चाहें तो बाद में भी देख सकते हैं।";
+    } else {
+      reply = "क्या आप demo देखना चाहेंगे?";
+    }
+
+    const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
 
   <Speak language="hi-IN" voice="WOMAN">
-    धन्यवाद, आपकी आवाज़ मिल गई।
+    ${reply}
   </Speak>
 
   <GetInput
@@ -28,9 +47,10 @@ router.post("/process-slot", async (req, res) => {
     inputType="speech"
     language="hi-IN"
     timeout="7"
+    speechTimeout="auto"
   >
     <Speak language="hi-IN" voice="WOMAN">
-      क्या आप demo देखना चाहेंगे?
+      कृपया जवाब दें।
     </Speak>
   </GetInput>
 
@@ -45,7 +65,7 @@ router.post("/process-slot", async (req, res) => {
   }
 });
 
-// 🔥 OPTIONAL (GET fallback)
+// ✅ OPTIONAL: browser test
 router.get("/process-slot", (req, res) => {
   console.log("🌐 GET process-slot hit");
 
@@ -58,6 +78,7 @@ router.get("/process-slot", (req, res) => {
 </Response>
   `);
 });
+
 console.log("✅ voiceRealtimeRoutes loaded");
 
 module.exports = router;
