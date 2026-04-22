@@ -47,16 +47,17 @@ router.post("/process-slot", async (req, res) => {
 
 // 🔥 OPTIONAL (GET fallback)
 router.get("/process-slot", (req, res) => {
+  console.log("🌐 GET process-slot hit");
+
   res.set("Content-Type", "text/xml");
   res.send(`
 <Response>
   <Speak language="hi-IN" voice="WOMAN">
-    कृपया कुछ बोलिए।
+    सिस्टम तैयार है। कृपया कुछ बोलिए।
   </Speak>
 </Response>
   `);
 });
-
 console.log("✅ voiceRealtimeRoutes loaded");
 
 module.exports = router;
