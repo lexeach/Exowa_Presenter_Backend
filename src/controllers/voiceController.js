@@ -2,11 +2,15 @@ exports.answerCall = async (req, res) => {
   try {
     console.log("📩 /voice/answer hit", req.body);
 
-    const responseXML = `
+    const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
 
+  <Speak language="hi-IN" voice="WOMAN">
+    नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
+  </Speak>
+
   <GetInput
-    action="https://exowa-presenter-backend.onrender.com/api/vobiz/process-slot"
+    action="https://exowa-presenter-backend.onrender.com/api/voice/process-slot"
     method="POST"
     inputType="speech"
     language="hi-IN"
@@ -14,7 +18,6 @@ exports.answerCall = async (req, res) => {
     speechTimeout="auto"
   >
     <Speak language="hi-IN" voice="WOMAN">
-      नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
       क्या आप मुझे सुन पा रहे हैं? कृपया कुछ बोलिए।
     </Speak>
   </GetInput>
