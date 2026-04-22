@@ -1,15 +1,34 @@
-const Lead = require("../models/Lead");
+const express = require("express");
+const router = express.Router();
 
-// ================== ANSWER CALL ==================
-exports.answerCall = async (req, res) => {
+const {
+  realtimeVoiceReply,
+  answerCall
+} = require("../controllers/voiceRealtimeController");
+
+// ================== ANSWER ==================
+router.post("/answer", answerCall);
+
+// ================== REALTIME ==================
+router.post("/realtime", realtimeVoiceReply);
+
+// ================== PROCESS SLOT ==================
+router.post("/process-slot", async (req, res) => {
   try {
-    console.log("📩 /voice/answer hit", req.body);
+    console.log("🎤 process-slot hit", req.body);
+
+    const userSpeech =
+      req.body.Speech ||
+      req.body.Digits ||
+      "";
+
+    console.log("🧠 User said:", userSpeech);
 
     const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
 
   <Speak language="hi-IN" voice="WOMAN">
-    नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
+    धन्यवाद, आपने कहा: ${userSpeech}
   </Speak>
 
   <GetInput
@@ -21,7 +40,7 @@ exports.answerCall = async (req, res) => {
     speechTimeout="auto"
   >
     <Speak language="hi-IN" voice="WOMAN">
-      क्या आप मुझे सुन पा रहे हैं? कृपया कुछ बोलिए।
+      क्या आप demo देखना चाहेंगे?
     </Speak>
   </GetInput>
 
@@ -31,46 +50,25 @@ exports.answerCall = async (req, res) => {
     res.send(responseXML);
 
   } catch (error) {
-    console.error("❌ answerCall error:", error);
+    console.error("❌ process-slot error:", error);
     res.sendStatus(500);
   }
-};
+});
 
-// ================== REALTIME WEBHOOK ==================
-exports.realtimeVoiceReply = async (req, res) => {
-  try {
-    console.log("📩 REALTIME WEBHOOK:", req.body);
+// ================== GET TEST ==================
+router.get("/process-slot", (req, res) => {
+  console.log("🌐 GET process-slot hit");
 
-    const event = req.body.Event || "";
-    const callStatus = req.body.CallStatus || "";
+  res.set("Content-Type", "text/xml");
+  res.send(`
+<Response>
+  <Speak language="hi-IN" voice="WOMAN">
+    सिस्टम तैयार है। कृपया कुछ बोलिए।
+  </Speak>
+</Response>
+  `);
+});
 
-    const phone = req.body.To?.slice(-10);
-    const callId =
-      req.body.CallUUID ||
-      req.body.RequestUUID;
+console.log("✅ voiceRealtimeRoutes loaded");
 
-    // Call end
-    if (event === "Hangup" || callStatus === "completed") {
-      console.log("📴 Call ended");
-      return res.status(200).send("OK");
-    }
-
-    // Save in DB
-    const lead = await Lead.findOne({ phone });
-
-    if (lead) {
-      lead.lastEvent = event;
-      lead.callStatus = callStatus;
-      lead.lastCallUUID = callId;
-      lead.updatedAt = new Date();
-
-      await lead.save();
-    }
-
-    return res.status(200).send("OK");
-
-  } catch (error) {
-    console.error("❌ realtime error:", error.message);
-    return res.status(200).send("OK");
-  }
-};
+module.exports = router;
