@@ -9,8 +9,8 @@ const answerCall = async (req, res) => {
     const baseUrl = process.env.BACKEND_BASE_URL || `https://${req.get('host')}`;
     const actionUrl = `${baseUrl}/api/voice/process-slot`;
 
-    // Vobiz uses <Gather> instead of <GetInput>
-    // inputType="speech" is supported by <Gather>
+    // Vobiz XML: <Gather> with nested <Speak>
+    // Note: Vobiz is very sensitive to XML structure.
     const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather
@@ -21,9 +21,7 @@ const answerCall = async (req, res) => {
     speechEndTimeout="auto"
     executionTimeout="15"
   >
-    <Speak language="hi-IN" voice="WOMAN">
-      नमस्ते, मैं Exowa AI assistant बोल रही हूँ। क्या आप मुझे सुन पा रहे हैं?
-    </Speak>
+    <Speak language="hi-IN" voice="WOMAN">नमस्ते, मैं Exowa AI assistant बोल रही हूँ। क्या आप मुझे सुन पा रहे हैं?</Speak>
   </Gather>
 </Response>`;
 
@@ -41,7 +39,6 @@ const processSlot = async (req, res) => {
   try {
     console.log("🎤 process-slot hit", req.body);
 
-    // Vobiz sends transcribed speech in the 'Speech' parameter
     const userSpeech = req.body.Speech || req.body.Digits || "";
     console.log("🧠 User said:", userSpeech);
 
@@ -61,9 +58,7 @@ const processSlot = async (req, res) => {
     speechEndTimeout="auto"
     executionTimeout="15"
   >
-    <Speak language="hi-IN" voice="WOMAN">
-      ${aiResponseText}
-    </Speak>
+    <Speak language="hi-IN" voice="WOMAN">${aiResponseText}</Speak>
   </Gather>
 </Response>`;
 
