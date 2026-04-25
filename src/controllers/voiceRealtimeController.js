@@ -1,19 +1,21 @@
 const Lead = require("../models/Lead");
+const { getAIReply } = require("../services/ai/voiceConversationService");
 
 // ✅ ANSWER CALL
 const answerCall = async (req, res) => {
   try {
     console.log("🔥 ANSWER HIT");
 
+    const baseUrl = process.env.BACKEND_BASE_URL || `https://${req.get('host')}`;
+    const actionUrl = `${baseUrl}/api/voice/process-slot`;
+
     const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-
   <Speak language="hi-IN" voice="WOMAN">
     नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
   </Speak>
-
   <GetInput
-    action="https://exowa-presenter-backend.onrender.com/api/voice/process-slot"
+    action="${actionUrl}"
     method="POST"
     inputType="speech"
     language="hi-IN"
@@ -24,7 +26,6 @@ const answerCall = async (req, res) => {
       क्या आप मुझे सुन पा रहे हैं?
     </Speak>
   </GetInput>
-
 </Response>`;
 
     res.set("Content-Type", "text/xml");
@@ -36,7 +37,46 @@ const answerCall = async (req, res) => {
   }
 };
 
-// ✅ REALTIME
+// ✅ PROCESS SLOT (AI Interaction)
+const processSlot = async (req, res) => {
+  try {
+    console.log("🎤 process-slot hit", req.body);
+
+    const userSpeech = req.body.Speech || req.body.Digits || "";
+    console.log("🧠 User said:", userSpeech);
+
+    // Get dynamic reply from AI service
+    const aiResponseText = await getAIReply(userSpeech);
+    
+    const baseUrl = process.env.BACKEND_BASE_URL || `https://${req.get('host')}`;
+    const actionUrl = `${baseUrl}/api/voice/process-slot`;
+
+    const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <GetInput
+    action="${actionUrl}"
+    method="POST"
+    inputType="speech"
+    language="hi-IN"
+    timeout="7"
+    speechTimeout="auto"
+  >
+    <Speak language="hi-IN" voice="WOMAN">
+      ${aiResponseText}
+    </Speak>
+  </GetInput>
+</Response>`;
+
+    res.set("Content-Type", "text/xml");
+    res.send(responseXML);
+
+  } catch (error) {
+    console.error("❌ process-slot error:", error);
+    res.sendStatus(500);
+  }
+};
+
+// ✅ REALTIME (Status Callbacks)
 const realtimeVoiceReply = async (req, res) => {
   try {
     console.log("📩 REALTIME WEBHOOK:", req.body);
@@ -70,5 +110,6 @@ const realtimeVoiceReply = async (req, res) => {
 
 module.exports = {
   answerCall,
+  processSlot,
   realtimeVoiceReply
 };
