@@ -64,35 +64,7 @@ app.get("/test", (req, res) => {
   return res.status(200).send("Route working");
 });
 
-/* ---------------------------
-   VOICE DIRECT TEST ROUTE
-   (IMPORTANT FOR DEBUGGING)
----------------------------- */
-app.get("/api/voice/answer", (req, res) => {
-  const xml =
-    '<?xml version="1.0" encoding="UTF-8"?>' +
-    "<Response>" +
-    '<Speak language="hi-IN" voice="WOMAN">' +
-    "नमस्ते, मैं Exowa AI sales assistant बोल रही हूँ।" +
-    "</Speak>" +
-    "</Response>";
 
-  res.set("Content-Type", "application/xml");
-  return res.status(200).send(xml);
-});
-
-app.post("/api/voice/answer", (req, res) => {
-  const xml =
-    '<?xml version="1.0" encoding="UTF-8"?>' +
-    "<Response>" +
-    '<Speak language="hi-IN" voice="WOMAN">' +
-    "नमस्ते, मैं Exowa AI sales assistant बोल रही हूँ।" +
-    "</Speak>" +
-    "</Response>";
-
-  res.set("Content-Type", "application/xml");
-  return res.status(200).send(xml);
-});
 
 /* ---------------------------
    API ROUTES
