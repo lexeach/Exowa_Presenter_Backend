@@ -9,11 +9,9 @@ const answerCall = async (req, res) => {
     const baseUrl = process.env.BACKEND_BASE_URL || `https://${req.get('host')}`;
     const actionUrl = `${baseUrl}/api/voice/process-slot`;
 
+    // Simplified XML: Removed extra Speak outside GetInput and kept only essential attributes
     const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Speak language="hi-IN" voice="WOMAN">
-    नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
-  </Speak>
   <GetInput
     action="${actionUrl}"
     method="POST"
@@ -23,7 +21,7 @@ const answerCall = async (req, res) => {
     speechTimeout="auto"
   >
     <Speak language="hi-IN" voice="WOMAN">
-      क्या आप मुझे सुन पा रहे हैं?
+      नमस्ते, मैं Exowa AI assistant बोल रही हूँ। क्या आप मुझे सुन पा रहे हैं?
     </Speak>
   </GetInput>
 </Response>`;
