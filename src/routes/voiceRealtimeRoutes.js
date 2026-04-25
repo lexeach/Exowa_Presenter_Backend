@@ -9,6 +9,7 @@ const {
 
 // ================== ANSWER ==================
 router.post("/answer", answerCall);
+router.get("/answer", answerCall);
 
 // ================== REALTIME ==================
 router.post("/realtime", realtimeVoiceReply);
