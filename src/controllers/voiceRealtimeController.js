@@ -9,13 +9,14 @@ const answerCall = async (req, res) => {
     const baseUrl = process.env.BACKEND_BASE_URL || `https://${req.get('host')}`;
     const actionUrl = `${baseUrl}/api/voice/process-slot`;
 
-    // Vobiz XML: Strict adherence to documentation example
-    // 1. No extra attributes in <Gather> that aren't in the example if possible
-    // 2. Standard indentation and newlines as shown in docs
+    // Vobiz XML: Enabling Speech Recognition
+    // 1. inputType="speech" enables ASR
+    // 2. language="hi-IN" for Hindi recognition
+    // 3. speechEndTimeout="auto" to detect when user stops talking
     const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather numDigits="1" timeout="10" action="${actionUrl}" method="POST">
-        <Speak>नमस्ते, मैं Exowa AI assistant बोल रही हूँ। क्या आप मुझे सुन पा रहे हैं?</Speak>
+    <Gather inputType="speech" language="hi-IN" speechEndTimeout="auto" action="${actionUrl}" method="POST">
+        <Speak language="hi-IN" voice="WOMAN">नमस्ते, मैं Exowa AI assistant बोल रही हूँ। क्या आप मुझे सुन पा रहे हैं?</Speak>
     </Gather>
     <Speak>We didn't receive your input. Goodbye!</Speak>
     <Hangup/>
@@ -35,7 +36,8 @@ const processSlot = async (req, res) => {
   try {
     console.log("🎤 process-slot hit", req.body);
 
-    const userSpeech = req.body.Speech || req.body.Digits || "";
+    // Vobiz sends transcribed speech in the 'Speech' parameter
+    const userSpeech = req.body.Speech || "";
     console.log("🧠 User said:", userSpeech);
 
     // Get dynamic reply from AI service
@@ -46,8 +48,8 @@ const processSlot = async (req, res) => {
 
     const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather numDigits="1" timeout="10" action="${actionUrl}" method="POST">
-        <Speak>${aiResponseText}</Speak>
+    <Gather inputType="speech" language="hi-IN" speechEndTimeout="auto" action="${actionUrl}" method="POST">
+        <Speak language="hi-IN" voice="WOMAN">${aiResponseText}</Speak>
     </Gather>
     <Speak>We didn't receive your input. Goodbye!</Speak>
     <Hangup/>
