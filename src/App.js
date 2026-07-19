@@ -7,7 +7,7 @@ const mongoose = require("mongoose");
 
 /* ROUTES */
 const leadRoutes = require("./routes/LeadRoutes");
-const vobizCallRoutes = require("./routes/voiceRealtimeRoutes");
+//const vobizCallRoutes = require("./routes/voiceRealtimeRoutes");
 const voiceRoutes = require("./routes/voiceRealtimeRoutes");
 
 /* SERVICES */
@@ -74,7 +74,7 @@ app.get("/test", (req, res) => {
 app.use("/api/leads", leadRoutes);
 
 /* VOBIZ ROUTES */
-app.use("/api/vobiz", vobizCallRoutes);
+//app.use("/api/vobiz", vobizCallRoutes);
 
 /* REALTIME VOICE ROUTES */
 app.use("/api/voice", voiceRoutes);
