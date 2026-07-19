@@ -29,6 +29,14 @@ console.log("📩 BODY:", req.body);
         timeout="10">
     </Gather>
 
+    <Speak>
+        मुझे आपकी आवाज़ नहीं मिली।
+    </Speak>
+
+    <Redirect method="POST">
+        ${actionUrl}
+    </Redirect>
+
 </Response>`;
     
     res.set("Content-Type", "text/xml");
