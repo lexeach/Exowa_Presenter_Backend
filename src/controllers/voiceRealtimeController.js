@@ -14,30 +14,23 @@ console.log("📩 BODY:", req.body);
     // 1. inputType="speech" enables ASR
     // 2. language="hi-IN" for Hindi recognition
     // 3. speechEndTimeout="auto" to detect when user stops talking
-  const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
+ const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+
+    <Speak>
+        नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
+        क्या आप मुझे सुन पा रहे हैं?
+    </Speak>
 
     <Gather
         inputType="speech"
-        language="hi-IN"
-        timeout="10"
-        speechEndTimeout="auto"
         action="${actionUrl}"
-        method="POST">
-
-        <Speak language="hi-IN" voice="WOMAN">
-            नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
-            क्या आप मुझे सुन पा रहे हैं?
-        </Speak>
-
+        method="POST"
+        timeout="10">
     </Gather>
 
-    <Redirect method="POST">
-        ${actionUrl}
-    </Redirect>
-
 </Response>`;
-
+    
     res.set("Content-Type", "text/xml");
     res.send(responseXML);
 
