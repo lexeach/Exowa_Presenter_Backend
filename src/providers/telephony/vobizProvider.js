@@ -45,6 +45,16 @@ const hangupUrl =
         }
       );
 
+      console.log(
+  "📞 Call UUID:",
+  response.data?.request_uuid
+);
+
+console.log(
+  "📞 Full Vobiz response:",
+  JSON.stringify(response.data, null, 2)
+);
+
       console.log("📞 Vobiz Call:", response.data);
 
       return {
