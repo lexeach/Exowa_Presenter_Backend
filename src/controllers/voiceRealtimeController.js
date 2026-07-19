@@ -65,28 +65,31 @@ console.log("📩 Full request body:", req.body);
     const baseUrl = process.env.BACKEND_BASE_URL || `https://${req.get('host')}`;
     const actionUrl = `${baseUrl}/api/voice/process-slot`;
 
-   const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
+  const responseXML = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+
+    <Speak>
+        नमस्ते, मैं Exowa AI assistant बोल रही हूँ।
+        क्या आप मुझे सुन पा रहे हैं?
+    </Speak>
 
     <Gather
         inputType="speech"
-        language="hi-IN"
-        timeout="10"
-        speechEndTimeout="auto"
         action="${actionUrl}"
-        method="POST">
-
-        <Speak language="hi-IN" voice="WOMAN">
-            ${aiResponseText}
-        </Speak>
-
+        method="POST"
+        timeout="10">
     </Gather>
+
+    <Speak>
+        मुझे आपकी आवाज़ नहीं मिली।
+    </Speak>
 
     <Redirect method="POST">
         ${actionUrl}
     </Redirect>
 
 </Response>`;
+    
     res.set("Content-Type", "text/xml");
     res.send(responseXML);
 
