@@ -13,11 +13,11 @@ module.exports = {
       }
 
       // 🔥 FINAL FIX: correct URLs
-     const answerUrl =
-  `${process.env.BACKEND_BASE_URL}/api/vobiz/answer`;
+  const answerUrl =
+  `${process.env.BACKEND_BASE_URL}/api/voice/answer`;
 
 const hangupUrl =
-  `${process.env.BACKEND_BASE_URL}/api/vobiz/realtime`;
+  `${process.env.BACKEND_BASE_URL}/api/voice/realtime`;
 
       console.log("📡 Using Answer URL:", answerUrl);
       console.log("📡 Using Hangup URL:", hangupUrl);
