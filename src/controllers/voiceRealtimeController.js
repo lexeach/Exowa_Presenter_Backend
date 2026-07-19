@@ -52,8 +52,17 @@ const processSlot = async (req, res) => {
     console.log("🎤 process-slot hit", req.body);
 
     // Vobiz sends transcribed speech in the 'Speech' parameter
-    const userSpeech = req.body.Speech || "";
-    console.log("🧠 User said:", userSpeech);
+   // Accept all possible speech field names sent by Vobiz
+
+const userSpeech =
+  req.body.Speech ||
+  req.body.speech ||
+  req.body.text ||
+  req.body.transcript ||
+  "";
+
+console.log("🧠 User said:", userSpeech);
+console.log("📩 Full request body:", req.body);
 
     // Get dynamic reply from AI service
     const aiResponseText = await getAIReply(userSpeech);
