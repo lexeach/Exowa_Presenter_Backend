@@ -5,6 +5,7 @@ const { getAIReply } = require("../services/ai/voiceConversationService");
 const answerCall = async (req, res) => {
   try {
     console.log("🔥 ANSWER HIT");
+console.log("📩 BODY:", req.body);
 
     const baseUrl = process.env.BACKEND_BASE_URL || `https://${req.get('host')}`;
     const actionUrl = `${baseUrl}/api/voice/process-slot`;
@@ -49,7 +50,8 @@ const answerCall = async (req, res) => {
 // ✅ PROCESS SLOT (AI Interaction)
 const processSlot = async (req, res) => {
   try {
-    console.log("🎤 process-slot hit", req.body);
+   console.log("🎤 process-slot hit");
+console.log("📩 BODY:", req.body);
 
     // Vobiz sends transcribed speech in the 'Speech' parameter
    // Accept all possible speech field names sent by Vobiz
