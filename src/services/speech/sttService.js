@@ -1,25 +1,43 @@
+
 const axios = require("axios");
 
 async function transcribe(recordingUrl) {
   try {
+    if (!recordingUrl) {
+      console.log("⚠️ Missing recording URL");
+      return "";
+    }
+
     const response = await axios.post(
       process.env.SARVAM_STT_URL,
       {
-        audio_url: recordingUrl,
-        language: "hi-IN"
+        file_url: recordingUrl,
+        language_code: "hi-IN",
+        model: "saarika:v2"
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.SARVAM_API_KEY}`
+          "api-subscription-key": process.env.SARVAM_API_KEY,
+          "Content-Type": "application/json"
         }
       }
     );
 
-    return response.data.transcript || "";
+    return (
+      response.data?.transcript ||
+      response.data?.text ||
+      ""
+    );
   } catch (error) {
-    console.error("❌ STT Error:", error.message);
+    console.error(
+      "❌ Sarvam STT Error:",
+      error.response?.data || error.message
+    );
+
     return "";
   }
 }
 
-module.exports = { transcribe };
+module.exports = {
+  transcribe
+};
